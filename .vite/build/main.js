@@ -481,6 +481,9 @@ const createWindow = () => {
     width: 800,
     height: 600,
     webPreferences: {
+      nodeIntegration: false,
+      // Recommended: keep disabled for security
+      contextIsolation: true,
       preload: path$1.join(__dirname, "preload.js")
     }
   });
