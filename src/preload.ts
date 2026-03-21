@@ -8,8 +8,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
     const validChannels = [
       "create-gmail-tab",
       "some-other-channel",
-      "update-gmail-view-bounds",
-      "activate-gmail-tab",
+      "update-view-bounds",
+      "activate-tab",
+      "clear-partitions",
     ];
     if (validChannels.includes(channel)) {
       ipcRenderer.send(channel, data);
@@ -19,9 +20,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Example: invoke (async request → response)
   invoke: (channel: string, data: any) => {
     const validInvokeChannels = [
-      "create-or-show-gmail-tab",
-      "update-gmail-view-bounds",
-      "activate-gmail-tab",
+      "create-or-show-tab",
+      "update-view-bounds",
+      "activate-tab",
+      "clear-partitions",
     ];
     if (validInvokeChannels.includes(channel)) {
       return ipcRenderer.invoke(channel, data);
@@ -31,11 +33,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // If you need to listen for messages from main → renderer
   onFromMain: (channel: string, callback: (...args: any[]) => void) => {
-    const valid = [
-      "tab-title-update",
-      "update-gmail-view-bounds",
-      "activate-gmail-tab",
-    ]; // etc.
+    const valid = ["tab-title-update", "update-view-bounds", "activate-tab"]; // etc.
     if (valid.includes(channel)) {
       // Deliberately strip event as it includes `sender`
       const subscription = (_event: any, ...args: any[]) => callback(...args);

@@ -6,8 +6,9 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
     const validChannels = [
       "create-gmail-tab",
       "some-other-channel",
-      "update-gmail-view-bounds",
-      "activate-gmail-tab"
+      "update-view-bounds",
+      "activate-tab",
+      "clear-partitions"
     ];
     if (validChannels.includes(channel)) {
       electron.ipcRenderer.send(channel, data);
@@ -16,9 +17,10 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
   // Example: invoke (async request → response)
   invoke: (channel, data) => {
     const validInvokeChannels = [
-      "create-or-show-gmail-tab",
-      "update-gmail-view-bounds",
-      "activate-gmail-tab"
+      "create-or-show-tab",
+      "update-view-bounds",
+      "activate-tab",
+      "clear-partitions"
     ];
     if (validInvokeChannels.includes(channel)) {
       return electron.ipcRenderer.invoke(channel, data);
@@ -27,11 +29,7 @@ electron.contextBridge.exposeInMainWorld("electronAPI", {
   },
   // If you need to listen for messages from main → renderer
   onFromMain: (channel, callback) => {
-    const valid = [
-      "tab-title-update",
-      "update-gmail-view-bounds",
-      "activate-gmail-tab"
-    ];
+    const valid = ["tab-title-update", "update-view-bounds", "activate-tab"];
     if (valid.includes(channel)) {
       const subscription = (_event, ...args) => callback(...args);
       electron.ipcRenderer.on(channel, subscription);

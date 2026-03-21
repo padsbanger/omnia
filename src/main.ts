@@ -7,6 +7,7 @@ import {
 } from "electron";
 import path from "node:path";
 import started from "electron-squirrel-startup";
+import routes, { Route } from "./routes";
 
 let mainWindow: BrowserWindow | null = null;
 const views = new Map<string, WebContentsView>(); // tabId → view
@@ -29,82 +30,94 @@ const createWindow = () => {
   let activeTabId: string | null = null;
 
   // Single handler for activation / creation / show
-  ipcMain.handle(
-    "activate-gmail-tab",
-    async (event, { tabId }: { tabId: string }) => {
-      if (!mainWindow) return { success: false };
+  ipcMain.handle("activate-tab", async (event, { route }: { route: Route }) => {
+    if (!mainWindow) return { success: false };
 
-      let view = views.get(tabId);
+    let view = views.get(route.id);
 
-      if (!view) {
-        const partition = `persist:gmail-${tabId}`;
-        const ses = session.fromPartition(partition);
+    if (!view) {
+      const partition = route.partition;
+      const ses = session.fromPartition(partition);
 
-        view = new WebContentsView({
-          webPreferences: {
-            session: ses,
-            nodeIntegration: false,
-            contextIsolation: true,
-          },
-        });
-
-        view.webContents.setUserAgent(
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-        );
-
-        view.webContents.on("page-title-updated", (e, title) => {
-          mainWindow?.webContents.send("tab-title-update", { tabId, title });
-        });
-
-        views.set(tabId, view);
-
-        // Load once
-        view.webContents.loadURL("https://mail.google.com");
-      }
-
-      // Remove ALL others to prevent overlap / stale views
-      for (const [id, v] of views.entries()) {
-        if (id !== tabId) {
-          mainWindow.contentView.removeChildView(v);
-        }
-      }
-
-      // Bring target to top (remove + add forces z-order to top)
-      mainWindow.contentView.removeChildView(view);
-      mainWindow.contentView.addChildView(view);
-
-      // Initial bounds from window (will be overridden by React soon)
-      const winBounds = mainWindow.getBounds();
-      view.setBounds({
-        x: 0,
-        y: 50,
-        width: winBounds.width,
-        height: winBounds.height - 50,
+      view = new WebContentsView({
+        webPreferences: {
+          session: ses,
+          nodeIntegration: false,
+          contextIsolation: true,
+        },
       });
 
-      activeTabId = tabId;
+      view.webContents.setUserAgent(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+      );
 
-      return { success: true };
-    },
-  );
+      view.webContents.on("page-title-updated", (e, title) => {
+        mainWindow?.webContents.send("tab-title-update", { route, title });
+      });
+
+      views.set(route.id, view);
+
+      // Load once
+      view.webContents.loadURL(route.loadURL);
+    }
+
+    // Remove ALL others to prevent overlap / stale views
+    for (const [id, v] of views.entries()) {
+      if (id !== route.id) {
+        mainWindow.contentView.removeChildView(v);
+      }
+    }
+
+    // Bring target to top (remove + add forces z-order to top)
+    mainWindow.contentView.removeChildView(view);
+    mainWindow.contentView.addChildView(view);
+
+    // Initial bounds from window (will be overridden by React soon)
+    const winBounds = mainWindow.getBounds();
+    view.setBounds({
+      x: 0,
+      y: 50,
+      width: winBounds.width,
+      height: winBounds.height - 50,
+    });
+
+    activeTabId = route.id;
+
+    console.log("Activated tab", route.id);
+    return { success: true };
+
+    /* eslint-disable-next-line */
+  });
+
+  ipcMain.handle("clear-partitions", async (event) => {
+    await session.defaultSession.clearStorageData();
+    routes.forEach((route) => {
+      const ses = session.fromPartition(route.partition);
+      ses.clearStorageData().then(() => {
+        console.log(`Cleared partition ${route.partition}`);
+      });
+    });
+  });
 
   // Precise bounds from React (called after activation)
-  ipcMain.handle(
-    "update-gmail-view-bounds",
-    async (event, { tabId, bounds }) => {
-      const view = views.get(tabId);
-      if (!view || !mainWindow) return { success: false };
+  /* eslint-disable-next-line */
+  ipcMain.handle("update-view-bounds", async (event, { route, bounds }) => {
+    const view = views.get(route.id);
+    if (!view || !mainWindow) return { success: false };
 
-      // Re-promote to top (in case order changed)
-      mainWindow.contentView.removeChildView(view);
-      mainWindow.contentView.addChildView(view);
+    // Re-promote to top (in case order changed)
+    mainWindow.contentView.removeChildView(view);
+    mainWindow.contentView.addChildView(view);
 
-      view.setBounds(bounds);
+    view.setBounds(bounds);
 
-      return { success: true };
-    },
-  );
+    console.log("Bounds updated for", route.id, bounds);
+    return { success: true };
 
+    /* eslint-disable-next-line */
+  });
+
+  /* eslint-disable-next-line */
   // One-time resize handler for fallback
   const updateActiveBounds = () => {
     if (!mainWindow || !activeTabId) return;
@@ -131,10 +144,8 @@ const createWindow = () => {
     );
   }
 
-  // Optional: if you want precise positioning from React <div> ref
-
   mainWindow.webContents.openDevTools();
-};
+};;
 
 app.on("ready", createWindow);
 

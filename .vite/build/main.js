@@ -473,6 +473,32 @@ var check = function() {
 };
 var electronSquirrelStartup = check();
 const started = /* @__PURE__ */ getDefaultExportFromCjs(electronSquirrelStartup);
+const routes = [
+  {
+    path: "/facebook",
+    id: "facebook",
+    icon: "Stuff",
+    label: "Facebook",
+    loadURL: "https://facebook.com/messages",
+    partition: "persist:gmail-facebook"
+  },
+  {
+    path: "/gmail1",
+    id: "gmail1",
+    icon: "Stuff",
+    label: "Gmail 1",
+    loadURL: "https://mail.google.com",
+    partition: "persist:gmail-gmail1"
+  },
+  {
+    path: "/gmail2",
+    id: "gmail2",
+    icon: "Stuff",
+    label: "Gmail 2",
+    loadURL: "https://mail.google.com",
+    partition: "persist:gmail-gmail2"
+  }
+];
 let mainWindow = null;
 const views = /* @__PURE__ */ new Map();
 if (started) {
@@ -489,59 +515,64 @@ const createWindow = () => {
     }
   });
   let activeTabId = null;
-  require$$3$1.ipcMain.handle(
-    "activate-gmail-tab",
-    async (event, { tabId }) => {
-      if (!mainWindow) return { success: false };
-      let view = views.get(tabId);
-      if (!view) {
-        const partition = `persist:gmail-${tabId}`;
-        const ses = require$$3$1.session.fromPartition(partition);
-        view = new require$$3$1.WebContentsView({
-          webPreferences: {
-            session: ses,
-            nodeIntegration: false,
-            contextIsolation: true
-          }
-        });
-        view.webContents.setUserAgent(
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
-        );
-        view.webContents.on("page-title-updated", (e, title) => {
-          mainWindow == null ? void 0 : mainWindow.webContents.send("tab-title-update", { tabId, title });
-        });
-        views.set(tabId, view);
-        view.webContents.loadURL("https://mail.google.com");
-      }
-      for (const [id, v] of views.entries()) {
-        if (id !== tabId) {
-          mainWindow.contentView.removeChildView(v);
+  require$$3$1.ipcMain.handle("activate-tab", async (event, { route }) => {
+    if (!mainWindow) return { success: false };
+    let view = views.get(route.id);
+    if (!view) {
+      const partition = route.partition;
+      const ses = require$$3$1.session.fromPartition(partition);
+      view = new require$$3$1.WebContentsView({
+        webPreferences: {
+          session: ses,
+          nodeIntegration: false,
+          contextIsolation: true
         }
-      }
-      mainWindow.contentView.removeChildView(view);
-      mainWindow.contentView.addChildView(view);
-      const winBounds = mainWindow.getBounds();
-      view.setBounds({
-        x: 0,
-        y: 50,
-        width: winBounds.width,
-        height: winBounds.height - 50
       });
-      activeTabId = tabId;
-      return { success: true };
+      view.webContents.setUserAgent(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+      );
+      view.webContents.on("page-title-updated", (e, title) => {
+        mainWindow == null ? void 0 : mainWindow.webContents.send("tab-title-update", { route, title });
+      });
+      views.set(route.id, view);
+      view.webContents.loadURL(route.loadURL);
     }
-  );
-  require$$3$1.ipcMain.handle(
-    "update-gmail-view-bounds",
-    async (event, { tabId, bounds }) => {
-      const view = views.get(tabId);
-      if (!view || !mainWindow) return { success: false };
-      mainWindow.contentView.removeChildView(view);
-      mainWindow.contentView.addChildView(view);
-      view.setBounds(bounds);
-      return { success: true };
+    for (const [id, v] of views.entries()) {
+      if (id !== route.id) {
+        mainWindow.contentView.removeChildView(v);
+      }
     }
-  );
+    mainWindow.contentView.removeChildView(view);
+    mainWindow.contentView.addChildView(view);
+    const winBounds = mainWindow.getBounds();
+    view.setBounds({
+      x: 0,
+      y: 50,
+      width: winBounds.width,
+      height: winBounds.height - 50
+    });
+    activeTabId = route.id;
+    console.log("Activated tab", route.id);
+    return { success: true };
+  });
+  require$$3$1.ipcMain.handle("clear-partitions", async (event) => {
+    await require$$3$1.session.defaultSession.clearStorageData();
+    routes.forEach((route) => {
+      const ses = require$$3$1.session.fromPartition(route.partition);
+      ses.clearStorageData().then(() => {
+        console.log(`Cleared partition ${route.partition}`);
+      });
+    });
+  });
+  require$$3$1.ipcMain.handle("update-view-bounds", async (event, { route, bounds }) => {
+    const view = views.get(route.id);
+    if (!view || !mainWindow) return { success: false };
+    mainWindow.contentView.removeChildView(view);
+    mainWindow.contentView.addChildView(view);
+    view.setBounds(bounds);
+    console.log("Bounds updated for", route.id, bounds);
+    return { success: true };
+  });
   const updateActiveBounds = () => {
     if (!mainWindow || !activeTabId) return;
     const view = views.get(activeTabId);
