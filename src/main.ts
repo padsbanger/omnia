@@ -56,6 +56,7 @@ const createWindow = () => {
       });
 
       views.set(route.id, view);
+      mainWindow?.webContents.send("tabId-change", { tabId: route.id });
 
       // Load once
       view.webContents.loadURL(route.loadURL);
@@ -68,11 +69,9 @@ const createWindow = () => {
       }
     }
 
-    // Bring target to top (remove + add forces z-order to top)
     mainWindow.contentView.removeChildView(view);
     mainWindow.contentView.addChildView(view);
 
-    // Initial bounds from window (will be overridden by React soon)
     const winBounds = mainWindow.getBounds();
     view.setBounds({
       x: 93,
@@ -82,11 +81,11 @@ const createWindow = () => {
     });
 
     activeTabId = route.id;
+    mainWindow?.webContents.send("tabId-change", { tabId: route.id });
 
     console.log("Activated tab", route.id);
     return { success: true };
 
-    /* eslint-disable-next-line */
   });
 
   ipcMain.handle("clear-partitions", async (event) => {
@@ -129,7 +128,7 @@ const createWindow = () => {
     );
   }
 
-  // mainWindow.webContents.openDevTools();
+  mainWindow.webContents.openDevTools();
 };;
 
 app.on("ready", createWindow);

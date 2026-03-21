@@ -1,6 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
 
-// Expose only the functions you actually need to React
 contextBridge.exposeInMainWorld("electronAPI", {
   // Example: send message to main process
   sendToMain: (channel: string, data: any) => {
@@ -11,6 +10,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
       "update-view-bounds",
       "activate-tab",
       "clear-partitions",
+      "tabId-change",
     ];
     if (validChannels.includes(channel)) {
       ipcRenderer.send(channel, data);
@@ -24,6 +24,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
       "update-view-bounds",
       "activate-tab",
       "clear-partitions",
+      "tabId-change",
     ];
     if (validInvokeChannels.includes(channel)) {
       return ipcRenderer.invoke(channel, data);
@@ -33,7 +34,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // If you need to listen for messages from main → renderer
   onFromMain: (channel: string, callback: (...args: any[]) => void) => {
-    const valid = ["tab-title-update", "update-view-bounds", "activate-tab"]; // etc.
+    const valid = [
+      "tab-title-update",
+      "update-view-bounds",
+      "activate-tab",
+      "tabId-change",
+    ]; // etc.
     if (valid.includes(channel)) {
       // Deliberately strip event as it includes `sender`
       const subscription = (_event: any, ...args: any[]) => callback(...args);
