@@ -6,6 +6,7 @@ import { MakerRpm } from '@electron-forge/maker-rpm';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
+import MakerPacman from "@osmn-byhn/electron-make-pacman";
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -14,9 +15,19 @@ const config: ForgeConfig = {
   rebuildConfig: {},
   makers: [
     new MakerSquirrel({}),
-    new MakerZIP({}, ['darwin']),
+    new MakerZIP({}, ["darwin"]),
     new MakerRpm({}),
     new MakerDeb({}),
+    new MakerPacman({
+      options: {
+        depends: ["gtk3", "nss", "libxss", "libxtst", "alsa-lib"], // Arch dependencies
+        // icon: "/absolute/path/to/app-icon.png",
+        desktopCategories: ["Utility", "Development"],
+        // aurOnly: true, // Only generates .SRCINFO for the AUR without building the package
+        // githubReleaseUrl: 'https://github.com/user/repo/releases/download/v1.0.0/app-linux.tar.gz'
+        // repoDb: '/var/lib/pacman/custom.db.tar.gz' // Automatically add to a local pacman repo
+      },
+    }),
   ],
   plugins: [
     new VitePlugin({
@@ -25,20 +36,20 @@ const config: ForgeConfig = {
       build: [
         {
           // `entry` is just an alias for `build.lib.entry` in the corresponding file of `config`.
-          entry: 'src/main.ts',
-          config: 'vite.main.config.ts',
-          target: 'main',
+          entry: "src/main.ts",
+          config: "vite.main.config.ts",
+          target: "main",
         },
         {
-          entry: 'src/preload.ts',
-          config: 'vite.preload.config.ts',
-          target: 'preload',
+          entry: "src/preload.ts",
+          config: "vite.preload.config.ts",
+          target: "preload",
         },
       ],
       renderer: [
         {
-          name: 'main_window',
-          config: 'vite.renderer.config.ts',
+          name: "main_window",
+          config: "vite.renderer.config.ts",
         },
       ],
     }),
