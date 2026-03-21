@@ -18,6 +18,7 @@ const config: ForgeConfig = {
     new MakerZIP({}, ["darwin"]),
     new MakerRpm({}),
     new MakerDeb({}),
+    new MakerZIP({}, ["linux"]),
     new MakerPacman({
       options: {
         depends: ["gtk3", "nss", "libxss", "libxtst", "alsa-lib"], // Arch dependencies
@@ -28,6 +29,19 @@ const config: ForgeConfig = {
         // repoDb: '/var/lib/pacman/custom.db.tar.gz' // Automatically add to a local pacman repo
       },
     }),
+  ],
+  publishers: [
+    {
+      name: "@electron-forge/publisher-github",
+      config: {
+        repository: {
+          owner: "padsbanger",
+          name: "omnia",
+        },
+        prerelease: false,
+        draft: false,
+      },
+    },
   ],
   plugins: [
     new VitePlugin({

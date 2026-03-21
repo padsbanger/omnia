@@ -1,0 +1,85 @@
+name: Build & Release Electron App
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 25           # Or 22 – match your project's node version
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci                  # or yarn install --frozen-lockfile
+
+      # Linux-specific deps (for deb/rpm/zip makers)
+      - name: Install Linux build tools (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fakeroot dpkg rpm libgtk-3-dev
+
+      # Optional: if you use @electron-forge/maker-rpm on non-RPM distro, rebuild DB
+      # - name: Fix RPM DB (if needed)
+      #   if: runner.os == 'Linux'
+      #   run: sudo rpm --rebuilddb || true
+
+      - name: Build & Make distributables
+        run: npm run make
+        env:
+          # If publishing → set GitHub token for @electron-forge/publisher-github
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts (optional – for manual download)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ runner.os }}-dist
+          path: out/make/**/*
+          retention-days: 7
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')   # Only on tags
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: '*-dist'
+          merge-multiple: true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/*-dist/**/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          body: |
+            Automated release from GitHub Actions.
+            Includes builds for Windows, macOS, Linux (.deb, .zip, etc.)
