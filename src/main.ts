@@ -55,6 +55,13 @@ const createWindow = () => {
         mainWindow?.webContents.send("tab-title-update", { route, title });
       });
 
+      // Prevent new windows from opening (e.g., OAuth popups)
+      view.webContents.setWindowOpenHandler((details) => {
+        // Load the URL in the same view instead of creating a new window
+        view.webContents.loadURL(details.url);
+        return { action: "deny" };
+      });
+
       views.set(route.id, view);
       mainWindow?.webContents.send("tabId-change", { tabId: route.id });
 
@@ -114,6 +121,14 @@ const createWindow = () => {
     return { success: true };
 
     /* eslint-disable-next-line */
+  });
+
+  ipcMain.handle("refresh-view", async (event, { route }: { route: Route }) => {
+    const view = views.get(route.id);
+    if (!view) return { success: false };
+    view.webContents.reload();
+    console.log("Refreshed view:", route.id);
+    return { success: true };
   });
 
   // Removed resize and move listeners to prevent overriding React-managed bounds

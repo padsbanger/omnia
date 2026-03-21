@@ -53,22 +53,29 @@ const Window = ({ route }: WindowProps) => {
     });
   };
 
+  const handleRefresh = () => {
+    window.electronAPI.invoke("refresh-view", { route });
+  };
+
   return (
-    <div
-      ref={containerRef}
-      style={{
-        position: "absolute",
-        left: 93,
-        top: 50,
-        width: "calc(100% - 93px)",
-        height: "calc(100% - 50px)",
-        background: "#f0f0f0", // placeholder while loading
-        overflow: "hidden",
-      }}
-      className="bg-black p-10 text-red-500"
-    >
-      content area
-    </div>
+    <>
+      <button onClick={handleRefresh}>Refresh</button>
+      <div
+        ref={containerRef}
+        style={{
+          position: "absolute",
+          left: 93,
+          top: 50,
+          width: "calc(100% - 93px)",
+          height: "calc(100% - 50px)",
+          background: "#f0f0f0", // placeholder while loading
+          overflow: "hidden",
+        }}
+        className="bg-black p-10 text-red-500"
+      >
+        content area
+      </div>
+    </>
   );
 };
 
