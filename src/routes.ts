@@ -32,6 +32,22 @@ const routes = [
     loadURL: "https://mail.google.com",
     partition: "persist:gmail-gmail2",
   },
+  {
+    path: "/gmail3",
+    id: "gmail3",
+    icon: "Stuff",
+    label: "Gmail 3",
+    loadURL: "https://mail.google.com",
+    partition: "persist:gmail-gmail3",
+  },
+  {
+    path: "/discord1",
+    id: "discord1",
+    icon: "Discord",
+    label: "Discord",
+    loadURL: "https://discord.com/channels/@me",
+    partition: "persist:discord-discord1",
+  },
 ];
 
 export default routes;

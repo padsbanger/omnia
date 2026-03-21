@@ -9,7 +9,6 @@ const Window = ({ route }: WindowProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     window.electronAPI.invoke("activate-tab", { route }).then(() => {
-      // After activation → sync precise bounds from the <div>
       updateBounds();
     });
 
@@ -18,22 +17,24 @@ const Window = ({ route }: WindowProps) => {
       (data) => {
         if (data.tabId === route.id) {
           console.log("Title updated for this tab:", data.title);
-          // Update badge / title in your tab UI here
         }
       },
     );
 
-    window.addEventListener("resize", updateBounds);
-    // Optional: ResizeObserver on containerRef for dynamic changes
+    const resizeObserver = new ResizeObserver(() => {
+      updateBounds();
+    });
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
 
     updateBounds(); // initial
 
     return () => {
       unsubscribe?.();
-      window.removeEventListener("resize", updateBounds);
-      // debouncedUpdate.cancel?.();
+      resizeObserver.disconnect();
     };
-  }, [route.id]); // If tabId changes → re-run (switch happened)
+  }, [route.id]);
 
   // Helper
   const updateBounds = () => {
@@ -56,15 +57,17 @@ const Window = ({ route }: WindowProps) => {
     <div
       ref={containerRef}
       style={{
-        width: "100%",
-        height: "100%",
-        position: "relative",
+        position: "absolute",
+        left: 93,
+        top: 50,
+        width: "calc(100% - 93px)",
+        height: "calc(100% - 50px)",
         background: "#f0f0f0", // placeholder while loading
         overflow: "hidden",
       }}
-      className="bg-black p-10 text-red-500 h-full"
+      className="bg-black p-10 text-red-500"
     >
-      gmail content area
+      content area
     </div>
   );
 };

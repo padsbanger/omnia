@@ -75,9 +75,9 @@ const createWindow = () => {
     // Initial bounds from window (will be overridden by React soon)
     const winBounds = mainWindow.getBounds();
     view.setBounds({
-      x: 0,
+      x: 93,
       y: 50,
-      width: winBounds.width,
+      width: winBounds.width - 93,
       height: winBounds.height - 50,
     });
 
@@ -117,24 +117,9 @@ const createWindow = () => {
     /* eslint-disable-next-line */
   });
 
-  /* eslint-disable-next-line */
-  // One-time resize handler for fallback
-  const updateActiveBounds = () => {
-    if (!mainWindow || !activeTabId) return;
-    const view = views.get(activeTabId);
-    if (view) {
-      const winBounds = mainWindow.getBounds();
-      view.setBounds({
-        x: 0,
-        y: 50,
-        width: winBounds.width,
-        height: winBounds.height - 50,
-      });
-    }
-  };
-
-  mainWindow.on("resize", updateActiveBounds);
-  mainWindow.on("move", updateActiveBounds);
+  // Removed resize and move listeners to prevent overriding React-managed bounds
+  // mainWindow.on("resize", updateActiveBounds);
+  // mainWindow.on("move", updateActiveBounds);
 
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
@@ -144,7 +129,7 @@ const createWindow = () => {
     );
   }
 
-  mainWindow.webContents.openDevTools();
+  // mainWindow.webContents.openDevTools();
 };;
 
 app.on("ready", createWindow);
