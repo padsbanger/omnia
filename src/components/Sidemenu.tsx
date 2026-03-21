@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 const Sidemenu = () => {
 
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
-
+  const [globalUnread, setGlobalUnread] = useState<number>(0);
   useEffect(() => {
     const unsubscribe = window.electronAPI.onFromMain(
       "tabId-change",
@@ -17,6 +17,33 @@ const Sidemenu = () => {
     );
     return () => unsubscribe?.();
   }, []);
+
+useEffect(() => {
+  // const unsubscribeTab = window.electronAPI.onFromMain(
+  //   "tab-unread-update",
+  //   ({ tabId: updatedId, unread }) => {
+  //     if (updatedId === route.id) {
+  //       // Update this tab's badge / label
+  //       setLocalUnread(unread);
+  //     }
+  //   },
+  // );
+
+  const unsubscribeGlobal = window.electronAPI.onFromMain(
+    "global-unread-update",
+    ({ total }) => {
+      setGlobalUnread(total);
+      // Update global counter (app title, tray icon, badge, etc.)
+      document.title = total > 0 ? `(${total}) My App` : "My App";
+      // Or use Electron app.setBadgeCount(total);  // shows red badge on taskbar icon (Windows/macOS)
+    },
+  );
+
+  return () => {
+    // unsubscribeTab?.();
+    unsubscribeGlobal?.();
+  };
+}, []);
 
   return (
     <div className="w-[93px] h-full bg-gray-800 shadow-lg flex flex-col items-center">
@@ -37,6 +64,7 @@ const Sidemenu = () => {
           </Link>
         );
       })}
+      {globalUnread}
       <button
         className="w-full text-center py-3 px-2 text-white text-sm font-medium bg-blue-600 hover:bg-blue-700 transition-colors duration-200 rounded-md mx-2 mt-auto"
         onClick={() => console.log("Add new link")}

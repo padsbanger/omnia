@@ -8,9 +8,11 @@ import {
 import path from "node:path";
 import started from "electron-squirrel-startup";
 import routes, { Route } from "./routes";
+import extractUnreadFromTitle from "./utils/extractUnreadFromTitle";
 
 let mainWindow: BrowserWindow | null = null;
 const views = new Map<string, WebContentsView>(); // tabId → view
+const unreadCounts = new Map<string, number>(); // tabId → count
 
 if (started) {
   app.quit();
@@ -52,7 +54,19 @@ const createWindow = () => {
       );
 
       view.webContents.on("page-title-updated", (e, title) => {
-        mainWindow?.webContents.send("tab-title-update", { route, title });
+        console.log("Page title updated for", route.id, ":", title);
+        const unread = extractUnreadFromTitle(title);
+        console.log("Extracted unread count:", unread);
+        unreadCounts.set(route.id, unread);
+        const totalUnread = Array.from(unreadCounts.values()).reduce(
+          (a, b) => a + b,
+          0,
+        );
+        console.log("Total unread:", totalUnread);
+        mainWindow?.webContents.send("global-unread-update", {
+          total: totalUnread,
+        });
+        console.log("Sent global-unread-update event");
       });
 
       // Prevent new windows from opening (e.g., OAuth popups)
