@@ -104,9 +104,9 @@ const createWindow = () => {
     const winBounds = mainWindow.getBounds();
     view.setBounds({
       x: 93,
-      y: 50,
+      y: 0,
       width: winBounds.width - 93,
-      height: winBounds.height - 50,
+      height: winBounds.height - 0,
     });
 
     activeTabId = route.id;

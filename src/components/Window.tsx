@@ -46,7 +46,7 @@ const Window = ({ route }: WindowProps) => {
       route,
       bounds: {
         x: 93,
-        y: 50,
+        y: 0,
         width: Math.round(rect.width),
         height: Math.round(rect.height),
       },
@@ -72,15 +72,14 @@ const Window = ({ route }: WindowProps) => {
 
   return (
     <>
-      <button onClick={handleRefresh}>Refresh</button>
       <div
         ref={containerRef}
         style={{
           position: "absolute",
           left: 93,
-          top: 50,
+          top: 0,
           width: "calc(100% - 93px)",
-          height: "calc(100% - 50px)",
+          height: "calc(100%)",
           background: "#f0f0f0", // placeholder while loading
           overflow: "hidden",
         }}

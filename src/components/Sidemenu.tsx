@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
 import routes from "../routes";
 import { WindowIcon } from "./WindowIcon";
+import { IoMdAdd } from "react-icons/io";
 import { useEffect, useState } from "react";
-
+import { Button, Drawer, Tooltip } from "@heroui/react";
+import { IoTrashBin } from "react-icons/io5";
 
 const Sidemenu = () => {
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
@@ -33,8 +35,7 @@ const Sidemenu = () => {
           newMap[routeId] = count;
         });
         setUnreadMap(newMap);
-        document.title = total > 0 ? `(${total}) My App` : "My App";
-        // Or use Electron app.setBadgeCount(total);  // shows red badge on taskbar icon (Windows/macOS)
+        document.title = total > 0 ? `(${total}) Omnia` : "Omnia";
       },
     );
 
@@ -46,7 +47,36 @@ const Sidemenu = () => {
   console.log(unreadMap);
 
   return (
-    <div className="w-[93px] h-full bg-gray-800 shadow-lg flex flex-col items-center">
+    <div className="w-23.25 h-full bg-gray-800 shadow-lg flex flex-col items-center">
+      <Drawer>
+        <Tooltip>
+          <Button isIconOnly className="my-6 text-white hover:bg-gray-700">
+            <IoMdAdd />
+          </Button>
+          <Tooltip.Content>
+            <p>Add new route.</p>
+          </Tooltip.Content>
+        </Tooltip>
+
+        <Drawer.Backdrop className={"z-9999"}>
+          <Drawer.Content placement="left">
+            <Drawer.Dialog>
+              <Drawer.Header>
+                <Drawer.Heading>Drawer Title</Drawer.Heading>
+              </Drawer.Header>
+              <Drawer.Body>
+                <p>
+                  This is a bottom drawer built with React Aria's Modal
+                  component. It slides up from the bottom of the screen with a
+                  smooth CSS transition.
+                </p>
+              </Drawer.Body>
+              <Drawer.Footer></Drawer.Footer>
+            </Drawer.Dialog>
+          </Drawer.Content>
+        </Drawer.Backdrop>
+      </Drawer>
+
       {routes.map((route) => {
         const isActive = route.id === activeTabId;
         return (
@@ -69,12 +99,20 @@ const Sidemenu = () => {
           </Link>
         );
       })}
-      <button
-        className="w-full text-center py-3 px-2 text-white text-sm font-medium bg-blue-600 hover:bg-blue-700 transition-colors duration-200 rounded-md mx-2 mt-auto"
-        onClick={() => console.log("Add new link")}
-      >
-        +
-      </button>
+      <Tooltip>
+        <Button
+          isIconOnly
+          className={"absolute bottom-6"}
+          onClick={() => {
+            window.electronAPI.invoke("clear-partitions");
+          }}
+        >
+          <IoTrashBin />
+        </Button>
+        <Tooltip.Content>
+          <p>Clear all routes data.</p>
+        </Tooltip.Content>
+      </Tooltip>
     </div>
   );
 };

@@ -3,7 +3,7 @@ import { BrowserWindow } from "electron";
 export default class Main {
   static mainWindow: Electron.BrowserWindow;
   static application: Electron.App;
-  static BrowserWindow;
+  static BrowserWindow: typeof BrowserWindow;
   private static onWindowAllClosed() {
     if (process.platform !== "darwin") {
       Main.application.quit();
