@@ -8,6 +8,7 @@ const validChannels = [
   "clear-partitions",
   "tabId-change",
   "refresh-view",
+  "open-external-link",
 ];
 
 contextBridge.exposeInMainWorld("electronAPI", {

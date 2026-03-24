@@ -89,7 +89,7 @@ const Sidemenu = () => {
             <WindowIcon className="m-auto" icon={route.icon} />
             {route.label}
             {unreadCounts[route.id] > 0 && (
-              <span className="absolute top-1 right-1 bg-red-500 text-white text-sm rounded-full px-1 min-w-[18px] h-4 flex items-center justify-center">
+              <span className="absolute top-1 right-1 bg-red-500 text-white text-sm rounded-full px-1 min-w-5 h-5 flex items-center justify-center">
                 {unreadCounts[route.id]}
               </span>
             )}

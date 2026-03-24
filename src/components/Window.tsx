@@ -69,6 +69,35 @@ const Window = ({ route }: WindowProps) => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+useEffect(() => {
+  const handleClick = (event: MouseEvent) => {
+    const anchor = (event.target as HTMLElement).closest(
+      "a",
+    ) as HTMLAnchorElement | null;
+    if (!anchor) return;
+
+    const href = anchor.getAttribute("href");
+    if (!href) return;
+
+    if (
+      href.startsWith("http://") ||
+      href.startsWith("https://") ||
+      href.startsWith("mailto:") ||
+      href.startsWith("tel:")
+    ) {
+      console.log("Opening external link:", href);
+      event.preventDefault();
+      window.electronAPI.invoke("open-external-link", { url: href });
+    } else {
+      console.log("Internal link clicked:", href);
+    }
+  };
+
+  const container = containerRef.current;
+  if (container) container.addEventListener("click", handleClick, true); // capture phase
+
+  return () => container?.removeEventListener("click", handleClick, true);
+}, []);
 
   return (
     <>
@@ -82,8 +111,8 @@ const Window = ({ route }: WindowProps) => {
           height: "calc(100%)",
           background: "#f0f0f0", // placeholder while loading
           overflow: "hidden",
+          zIndex: 1,
         }}
-        className="bg-black p-10 text-red-500"
       >
         content area
       </div>

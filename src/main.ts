@@ -10,6 +10,7 @@ import path from "node:path";
 import started from "electron-squirrel-startup";
 import routes, { Route } from "./routes";
 import extractUnreadFromTitle from "./utils/extractUnreadFromTitle";
+import isExternalUrl from "./utils/isExternalUrl";
 
 let mainWindow: BrowserWindow | null = null;
 const views = new Map<string, WebContentsView>(); // tabId → view
@@ -53,14 +54,16 @@ const createWindow = () => {
       console.log("Page title updated for", route.id, ":", title);
       const unread = extractUnreadFromTitle(title);
       console.log("Extracted unread count:", unread);
+
       const existing = unreadCounts.find((u) => u.routeId === route.id);
       if (existing) {
         existing.count = unread;
       } else {
         unreadCounts.push({ routeId: route.id, count: unread });
       }
+
       const totalUnread = unreadCounts.reduce((a, b) => a + b.count, 0);
-      console.log("Total unread:", totalUnread);
+
       mainWindow?.webContents.send("global-unread-update", {
         unreadCounts,
         total: totalUnread,
@@ -69,29 +72,40 @@ const createWindow = () => {
         routeId: route.id,
         count: unread,
       });
-      console.log("Sent global-unread-update and unread-update events");
     });
 
-    // Prevent new windows from opening (e.g., OAuth popups)
-    view.webContents.setWindowOpenHandler((details) => {
-      // Load the URL in the same view instead of creating a new window
-      view.webContents.loadURL(details.url);
-      return { action: "deny" };
+    const webContents = view.webContents;
+
+    webContents.on("will-navigate", (event, url) => {
+      if (isExternalUrl(url)) {
+        event.preventDefault();
+        shell.openExternal(url).catch((err) => {
+          console.error(`Failed to open external URL: ${url}`, err);
+        });
+      }
+    });
+
+    webContents.setWindowOpenHandler(({ url }) => {
+      if (isExternalUrl(url)) {
+        shell.openExternal(url).catch((err) => {
+          console.error(`Failed to open external URL: ${url}`, err);
+        });
+        return { action: "deny" };
+      }
+      return { action: "allow" };
     });
 
     views.set(route.id, view);
     view.webContents.loadURL(route.loadURL);
-    //stap
   });
 
-  // Single handler for activation / creation / show
   ipcMain.handle("activate-tab", async (event, { route }: { route: Route }) => {
     if (!mainWindow) return { success: false };
 
     const view = views.get(route.id);
-    if (!view) return { success: false }; // Should not happen since all are created
+    if (!view) return { success: false };
 
-    // Remove ALL others to prevent overlap / stale views
+    // Remove all other views
     for (const [id, v] of views.entries()) {
       if (id !== route.id) {
         mainWindow.contentView.removeChildView(v);
@@ -106,7 +120,7 @@ const createWindow = () => {
       x: 93,
       y: 0,
       width: winBounds.width - 93,
-      height: winBounds.height - 0,
+      height: winBounds.height,
     });
 
     activeTabId = route.id;
@@ -116,27 +130,14 @@ const createWindow = () => {
     return { success: true };
   });
 
-  ipcMain.handle("clear-partitions", async (event) => {
-    await session.defaultSession.clearStorageData();
-    routes.forEach((route) => {
-      const ses = session.fromPartition(route.partition);
-      ses.clearStorageData().then(() => {
-        console.log(`Cleared partition ${route.partition}`);
-      });
-    });
-  });
-
-  // Precise bounds from React (called after activation)
   ipcMain.handle("update-view-bounds", async (event, { route, bounds }) => {
     const view = views.get(route.id);
     if (!view || !mainWindow) return { success: false };
 
-    // Re-promote to top (in case order changed)
     mainWindow.contentView.removeChildView(view);
     mainWindow.contentView.addChildView(view);
 
     view.setBounds(bounds);
-
     console.log("Bounds updated for", route.id, bounds);
     return { success: true };
   });
@@ -149,10 +150,25 @@ const createWindow = () => {
     return { success: true };
   });
 
-  // Removed resize and move listeners to prevent overriding React-managed bounds
-  // mainWindow.on("resize", updateActiveBounds);
-  // mainWindow.on("move", updateActiveBounds);
+  ipcMain.handle("clear-partitions", async () => {
+    await session.defaultSession.clearStorageData();
+    routes.forEach((route) => {
+      const ses = session.fromPartition(route.partition);
+      ses.clearStorageData().then(() => {
+        console.log(`Cleared partition ${route.partition}`);
+      });
+    });
+  });
 
+  // Fallback handler from renderer (still useful)
+  ipcMain.handle("open-external-link", async (_, { url }) => {
+    console.log("Request to open external link:", url);
+    if (isExternalUrl(url)) {
+      await shell.openExternal(url);
+    }
+  });
+
+  // Load main renderer
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
   } else {
@@ -162,7 +178,7 @@ const createWindow = () => {
   }
 
   mainWindow.webContents.openDevTools();
-}
+};
 
 app.on("ready", createWindow);
 
