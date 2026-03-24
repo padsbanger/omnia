@@ -4,8 +4,8 @@ import { BrowserRouter, Route, Routes, useNavigate } from "react-router-dom";
 
 import Window from "./components/Window";
 import Layout from "./components/Layout";
-import routes from "./routes";
 import { useAppStore } from "./store";
+import routes from "../common/routes";
 
 function AppWithKeyboardShortcuts() {
   const navigate = useNavigate();
