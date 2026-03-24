@@ -1,15 +1,13 @@
 import { createRoot } from "react-dom/client";
-import React from "react";
+import React, { useEffect } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import Window from "./components/Window";
 import Layout from "./components/Layout";
 import routes from "./routes";
 
-const root = createRoot(document.body);
-
-root.render(
-  <React.StrictMode>
+function AppWithKeyboardShortcuts() {
+  return (
     <BrowserRouter>
       <Layout>
         <Routes>
@@ -23,5 +21,13 @@ root.render(
         </Routes>
       </Layout>
     </BrowserRouter>
+  );
+}
+
+const root = createRoot(document.body);
+
+root.render(
+  <React.StrictMode>
+    <AppWithKeyboardShortcuts />
   </React.StrictMode>,
 );

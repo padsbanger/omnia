@@ -57,6 +57,19 @@ const Window = ({ route }: WindowProps) => {
     window.electronAPI.invoke("refresh-view", { route });
   };
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === "r") {
+        event.preventDefault();
+        handleRefresh();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+
   return (
     <>
       <button onClick={handleRefresh}>Refresh</button>

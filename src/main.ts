@@ -3,6 +3,7 @@ import {
   BrowserWindow,
   ipcMain,
   session,
+  shell,
   WebContentsView,
 } from "electron";
 import path from "node:path";
@@ -161,7 +162,7 @@ const createWindow = () => {
   }
 
   mainWindow.webContents.openDevTools();
-};;;;
+}
 
 app.on("ready", createWindow);
 
