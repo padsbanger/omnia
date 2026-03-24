@@ -5,36 +5,34 @@ import { IoMdAdd } from "react-icons/io";
 import { useEffect, useState } from "react";
 import { Button, Drawer, Tooltip } from "@heroui/react";
 import { IoTrashBin } from "react-icons/io5";
-
+import { useAppStore } from "../store";
 const Sidemenu = () => {
-  const [activeTabId, setActiveTabId] = useState<string | null>(null);
-  const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
+  const { activeTab, unreadCounts, setActiveTab, updateUnreadCount } =
+    useAppStore();
 
   useEffect(() => {
     const unsubscribe = window.electronAPI.onFromMain(
       "tabId-change",
       (data: { tabId: string }) => {
-        setActiveTabId(data.tabId);
+        setActiveTab(data.tabId);
       },
     );
     return () => unsubscribe?.();
-  }, []);
+  }, [setActiveTab]);
 
   useEffect(() => {
     const unsubscribeGlobal = window.electronAPI.onFromMain(
       "global-unread-update",
       ({
         total,
-        unreadCounts,
+        unreadCounts: newUnreadCounts,
       }: {
         total: number;
         unreadCounts: Array<{ routeId: string; count: number }>;
       }) => {
-        const newMap: Record<string, number> = {};
-        unreadCounts.forEach(({ routeId, count }) => {
-          newMap[routeId] = count;
+        newUnreadCounts.forEach(({ routeId, count }) => {
+          updateUnreadCount(routeId, count);
         });
-        setUnreadMap(newMap);
         document.title = total > 0 ? `(${total}) Omnia` : "Omnia";
       },
     );
@@ -42,9 +40,8 @@ const Sidemenu = () => {
     return () => {
       unsubscribeGlobal?.();
     };
-  }, []);
+  }, [updateUnreadCount]);
 
-  console.log(unreadMap);
 
   return (
     <div className="w-23.25 h-full bg-gray-800 shadow-lg flex flex-col items-center">
@@ -78,7 +75,7 @@ const Sidemenu = () => {
       </Drawer>
 
       {routes.map((route) => {
-        const isActive = route.id === activeTabId;
+        const isActive = route.id === activeTab;
         return (
           <Link
             to={route.path}
@@ -91,9 +88,9 @@ const Sidemenu = () => {
           >
             <WindowIcon className="m-auto" icon={route.icon} />
             {route.label}
-            {unreadMap[route.id] > 0 && (
+            {unreadCounts[route.id] > 0 && (
               <span className="absolute top-1 right-1 bg-red-500 text-white text-sm rounded-full px-1 min-w-[18px] h-4 flex items-center justify-center">
-                {unreadMap[route.id]}
+                {unreadCounts[route.id]}
               </span>
             )}
           </Link>
