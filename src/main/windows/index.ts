@@ -13,8 +13,6 @@ import isExternalUrl from "../../common/utils/isExternalUrl";
 
 const createWindow = () => {
   let mainWindow: BrowserWindow | null = null;
-  const views = new Map<string, WebContentsView>(); // tabId → view
-  const unreadCounts: Array<{ routeId: string; count: number }> = [];
 
   mainWindow = new BrowserWindow({
     width: 800,
@@ -26,7 +24,8 @@ const createWindow = () => {
     },
   });
 
-  let activeTabId: string | null = null;
+  const views = new Map<string, WebContentsView>(); // tabId → view
+  const unreadCounts: Array<{ routeId: string; count: number }> = [];
 
   // Create all views on startup
   routes.forEach((route) => {
@@ -72,6 +71,7 @@ const createWindow = () => {
     const webContents = view.webContents;
 
     webContents.on("will-navigate", (event, url) => {
+      // need to block auth redirects but allow external links to open in browser
       if (isExternalUrl(url)) {
         event.preventDefault();
         shell.openExternal(url).catch((err) => {
@@ -118,7 +118,6 @@ const createWindow = () => {
       height: winBounds.height,
     });
 
-    activeTabId = route.id;
     mainWindow?.webContents.send("tabId-change", { tabId: route.id });
 
     console.log("Activated tab", route.id);
@@ -155,7 +154,6 @@ const createWindow = () => {
     });
   });
 
-  // Fallback handler from renderer (still useful)
   ipcMain.handle("open-external-link", async (_, { url }) => {
     console.log("Request to open external link:", url);
     if (isExternalUrl(url)) {
@@ -173,6 +171,8 @@ const createWindow = () => {
   }
 
   // mainWindow.webContents.openDevTools();
+
+  return mainWindow;
 };
 
 export default createWindow;

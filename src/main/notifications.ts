@@ -1,6 +1,6 @@
 import { Notification } from "electron";
 
-function showMainNotification(
+export function showMainNotification(
   title: string,
   body: string,
   options: any = {},
@@ -27,6 +27,7 @@ function showMainNotification(
   notification.on("click", () => {
     console.log("Notification clicked from main");
     if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.show();
       mainWindow.focus();
     }

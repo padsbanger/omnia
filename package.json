@@ -12,6 +12,11 @@
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx ."
   },
+    "build": {
+    "appId": "com.strielok.omnia",
+    "productName": "Omnia",
+    "icon": "src/assets/icon.png"
+  },
   "keywords": [],
   "author": {
     "name": "Michał Lach",
