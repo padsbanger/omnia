@@ -1,13 +1,13 @@
+import routes, { Route } from "../../common/routes";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 interface AppState {
-  // Example state - you can customize this
   sidebarCollapsed: boolean;
   activeTab: string | null;
   unreadCounts: Record<string, number>;
+  routes: Array<Route>;
 
-  // Actions
   toggleSidebar: () => void;
   setActiveTab: (tabId: string | null) => void;
   updateUnreadCount: (tabId: string, count: number) => void;
@@ -15,11 +15,12 @@ interface AppState {
 
 export const useAppStore = create<AppState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       // Initial state
       sidebarCollapsed: false,
       activeTab: null as string | null,
       unreadCounts: {},
+      routes: routes,
 
       // Actions
       toggleSidebar: () =>
@@ -32,8 +33,16 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: "omnia-app-storage", // Key for localStorage
-      // You can add version for migrations if needed
-      // version: 1,
+      partialize: (state) => ({
+        sidebarCollapsed: state.sidebarCollapsed,
+        activeTab: state.activeTab,
+        unreadCounts: state.unreadCounts,
+      }),
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        ...(persistedState as Partial<AppState>),
+        routes,
+      }),
     },
   ),
 );

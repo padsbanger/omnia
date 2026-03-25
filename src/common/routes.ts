@@ -1,5 +1,3 @@
-import { BiLogoGmail } from "react-icons/bi";
-
 export type Route = {
   path: string;
   id: string;

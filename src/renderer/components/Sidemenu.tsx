@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import routes from "../../common/routes";
 import { WindowIcon } from "./WindowIcon";
 import { IoMdAdd } from "react-icons/io";
 import { useEffect, useState } from "react";
@@ -8,7 +7,7 @@ import { IoTrashBin } from "react-icons/io5";
 import { useAppStore } from "../store";
 
 const Sidemenu = () => {
-  const { activeTab, unreadCounts, setActiveTab, updateUnreadCount } =
+  const { activeTab, unreadCounts, setActiveTab, updateUnreadCount, routes } =
     useAppStore();
 
   useEffect(() => {
