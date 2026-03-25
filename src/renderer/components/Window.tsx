@@ -53,7 +53,7 @@ const Window = ({ route }: WindowProps) => {
     });
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = (route: Route) => {
     window.electronAPI.invoke("refresh-view", { route });
   };
 
@@ -61,43 +61,13 @@ const Window = ({ route }: WindowProps) => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key === "r") {
         event.preventDefault();
-        handleRefresh();
+        handleRefresh(route);
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
-  useEffect(() => {
-    const handleClick = (event: MouseEvent) => {
-      const anchor = (event.target as HTMLElement).closest(
-        "a",
-      ) as HTMLAnchorElement | null;
-      if (!anchor) return;
-
-      const href = anchor.getAttribute("href");
-      if (!href) return;
-
-      if (
-        href.startsWith("http://") ||
-        href.startsWith("https://") ||
-        href.startsWith("mailto:") ||
-        href.startsWith("tel:")
-      ) {
-        console.log("Opening external link:", href);
-        event.preventDefault();
-        window.electronAPI.invoke("open-external-link", { url: href });
-      } else {
-        console.log("Internal link clicked:", href);
-      }
-    };
-
-    const container = containerRef.current;
-    if (container) container.addEventListener("click", handleClick, true); // capture phase
-
-    return () => container?.removeEventListener("click", handleClick, true);
-  }, []);
+  }, [route]);
 
   return (
     <>
