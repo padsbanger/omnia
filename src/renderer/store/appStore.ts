@@ -7,10 +7,13 @@ interface AppState {
   activeTab: string | null;
   unreadCounts: Record<string, number>;
   routes: Array<Route>;
+  drawerOpen: boolean;
 
   toggleSidebar: () => void;
   setActiveTab: (tabId: string | null) => void;
   updateUnreadCount: (tabId: string, count: number) => void;
+  setDrawerOpen: (isOpen: boolean) => void;
+  addRoute: (route: Route) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -20,7 +23,8 @@ export const useAppStore = create<AppState>()(
       sidebarCollapsed: false,
       activeTab: null as string | null,
       unreadCounts: {},
-      routes: routes,
+      routes: [] as Array<Route>,
+      drawerOpen: false,
 
       // Actions
       toggleSidebar: () =>
@@ -30,19 +34,14 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           unreadCounts: { ...state.unreadCounts, [tabId]: count },
         })),
+      setDrawerOpen: (drawerOpen) => set({ drawerOpen }),
+      addRoute: (route) =>
+        set((state) => ({
+          routes: [...state.routes, route],
+        })),
     }),
     {
       name: "omnia-app-storage", // Key for localStorage
-      partialize: (state) => ({
-        sidebarCollapsed: state.sidebarCollapsed,
-        activeTab: state.activeTab,
-        unreadCounts: state.unreadCounts,
-      }),
-      merge: (persistedState, currentState) => ({
-        ...currentState,
-        ...(persistedState as Partial<AppState>),
-        routes,
-      }),
     },
   ),
 );

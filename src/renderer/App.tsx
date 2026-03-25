@@ -5,11 +5,10 @@ import { BrowserRouter, Route, Routes, useNavigate } from "react-router-dom";
 import Window from "./components/Window";
 import Layout from "./components/Layout";
 import { useAppStore } from "./store";
-import routes from "../common/routes";
 
 function AppWithKeyboardShortcuts() {
   const navigate = useNavigate();
-  const { activeTab } = useAppStore();
+  const { activeTab, routes } = useAppStore();
 
   useEffect(() => {
     // Only navigate on initial load if we're at root path
@@ -27,7 +26,7 @@ function AppWithKeyboardShortcuts() {
         }
       }
     }
-  }, []); // Empty dependency array - only run once on mount
+  }, [activeTab, navigate, routes]);
 
   return (
     <Layout>

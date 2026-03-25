@@ -2,11 +2,13 @@ import { JSX } from "react";
 import { BiLogoGmail } from "react-icons/bi";
 import { FaDiscord } from "react-icons/fa";
 import { FaFacebookMessenger } from "react-icons/fa";
+import { SiTradingview } from "react-icons/si";
 
 const IconsDict: Record<string, JSX.Element> = {
   facebook: <FaFacebookMessenger />,
   gmail: <BiLogoGmail />,
   discord: <FaDiscord />,
+  tradingview: <SiTradingview />,
 };
 
 export const WindowIcon = ({

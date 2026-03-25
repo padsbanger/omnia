@@ -12,6 +12,7 @@ type RegisterIpcHandlersParams = {
   getMainWindow: () => BrowserWindow | null;
   views: Map<string, WebContentsView>;
   routes: Route[];
+  createViewForRoute: (route: Route) => WebContentsView | null;
 };
 
 type Bounds = {
@@ -25,6 +26,7 @@ export default function registerIpcHandlers({
   getMainWindow,
   views,
   routes,
+  createViewForRoute,
 }: RegisterIpcHandlersParams) {
   ipcMain.removeHandler("activate-tab");
   ipcMain.handle(
@@ -33,7 +35,7 @@ export default function registerIpcHandlers({
       const mainWindow = getMainWindow();
       if (!mainWindow) return { success: false };
 
-      const view = views.get(route.id);
+      const view = views.get(route.id) ?? createViewForRoute(route);
       if (!view) return { success: false };
 
       for (const [id, v] of views.entries()) {
@@ -65,7 +67,7 @@ export default function registerIpcHandlers({
     "update-view-bounds",
     async (_event, { route, bounds }: { route: Route; bounds: Bounds }) => {
       const mainWindow = getMainWindow();
-      const view = views.get(route.id);
+      const view = views.get(route.id) ?? createViewForRoute(route);
       if (!view || !mainWindow) return { success: false };
 
       mainWindow.contentView.removeChildView(view);
@@ -80,7 +82,7 @@ export default function registerIpcHandlers({
   ipcMain.handle(
     "refresh-view",
     async (_event, { route }: { route: Route }) => {
-      const view = views.get(route.id);
+      const view = views.get(route.id) ?? createViewForRoute(route);
       if (!view) return { success: false };
 
       view.webContents.reload();
@@ -108,4 +110,29 @@ export default function registerIpcHandlers({
       await shell.openExternal(url);
     }
   });
+
+  ipcMain.removeHandler("create-route-view");
+  ipcMain.handle(
+    "create-route-view",
+    async (_event, { route }: { route: Route }) => {
+      if (!route || !route.id) {
+        return { success: false, reason: "Invalid route" };
+      }
+
+      if (views.has(route.id)) {
+        return { success: true };
+      }
+
+      const view = createViewForRoute(route);
+      if (!view) {
+        return { success: false, reason: "Failed to create route view" };
+      }
+
+      if (!routes.some((existingRoute) => existingRoute.id === route.id)) {
+        routes.push(route);
+      }
+
+      return { success: true };
+    },
+  );
 }

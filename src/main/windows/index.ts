@@ -1,6 +1,6 @@
 import { BrowserWindow, session, shell, WebContentsView } from "electron";
 import path from "node:path";
-import routes, { Route } from "../../common/routes";
+import { Route } from "../../common/routes";
 import extractUnreadFromTitle from "../../common/utils/extractUnreadFromTitle";
 import {
   getExternalUrlTarget,
@@ -22,10 +22,18 @@ const createWindow = () => {
   });
 
   const views = new Map<string, WebContentsView>(); // tabId → view
+  const runtimeRoutes: Route[] = [];
   const unreadCounts: Array<{ routeId: string; count: number }> = [];
 
-  // Create all views on startup
-  routes.forEach((route) => {
+  const createViewForRoute = (route: Route) => {
+    if (!runtimeRoutes.some((existingRoute) => existingRoute.id === route.id)) {
+      runtimeRoutes.push(route);
+    }
+
+    if (views.has(route.id)) {
+      return views.get(route.id) ?? null;
+    }
+
     const partition = route.partition;
     const ses = session.fromPartition(partition);
     const internalHosts = route.internalHosts ?? [
@@ -107,13 +115,16 @@ const createWindow = () => {
     });
 
     views.set(route.id, view);
-    view.webContents.loadURL(route.loadURL);
-  });
+    void view.webContents.loadURL(route.loadURL);
+
+    return view;
+  };
 
   registerIpcHandlers({
     getMainWindow: () => mainWindow,
     views,
-    routes,
+    routes: runtimeRoutes,
+    createViewForRoute,
   });
 
   // Load main renderer
@@ -125,7 +136,7 @@ const createWindow = () => {
     );
   }
 
-  mainWindow.webContents.openDevTools();
+  // mainWindow.webContents.openDevTools();
 
   return mainWindow;
 };

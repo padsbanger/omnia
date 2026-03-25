@@ -1,14 +1,39 @@
 import { Link } from "react-router-dom";
 import { WindowIcon } from "./WindowIcon";
 import { IoMdAdd } from "react-icons/io";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Button, Drawer, Tooltip } from "@heroui/react";
 import { IoTrashBin } from "react-icons/io5";
 import { useAppStore } from "../store";
+import CreateNewRouteForm from "./CreateNewRouteForm";
 
 const Sidemenu = () => {
-  const { activeTab, unreadCounts, setActiveTab, updateUnreadCount, routes } =
-    useAppStore();
+  const {
+    activeTab,
+    unreadCounts,
+    setActiveTab,
+    updateUnreadCount,
+    routes,
+    drawerOpen,
+    setDrawerOpen,
+  } = useAppStore();
+
+  const openDrawer = () => {
+    setDrawerOpen(true);
+  };
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+  };
+
+  useEffect(() => {
+    if (drawerOpen) return;
+
+    const activeRoute = routes.find((route) => route.id === activeTab);
+    if (!activeRoute) return;
+
+    window.electronAPI.invoke("activate-tab", { route: activeRoute });
+  }, [drawerOpen, activeTab, routes]);
 
   useEffect(() => {
     const unsubscribe = window.electronAPI.onFromMain(
@@ -42,11 +67,19 @@ const Sidemenu = () => {
     };
   }, [updateUnreadCount]);
 
+  useEffect(() => {
+    return () => setDrawerOpen(false);
+  }, [setDrawerOpen]);
+
   return (
     <div className="w-23.25 h-full bg-gray-800 shadow-lg flex flex-col items-center">
       <Drawer>
         <Tooltip>
-          <Button isIconOnly className="my-6 text-white hover:bg-gray-700">
+          <Button
+            isIconOnly
+            className="my-6 text-white hover:bg-gray-700"
+            onClick={openDrawer}
+          >
             <IoMdAdd />
           </Button>
           <Tooltip.Content>
@@ -54,23 +87,7 @@ const Sidemenu = () => {
           </Tooltip.Content>
         </Tooltip>
 
-        <Drawer.Backdrop className={"z-9999"}>
-          <Drawer.Content placement="left">
-            <Drawer.Dialog>
-              <Drawer.Header>
-                <Drawer.Heading>Drawer Title</Drawer.Heading>
-              </Drawer.Header>
-              <Drawer.Body>
-                <p>
-                  This is a bottom drawer built with React Aria's Modal
-                  component. It slides up from the bottom of the screen with a
-                  smooth CSS transition.
-                </p>
-              </Drawer.Body>
-              <Drawer.Footer></Drawer.Footer>
-            </Drawer.Dialog>
-          </Drawer.Content>
-        </Drawer.Backdrop>
+        {drawerOpen && <CreateNewRouteForm closeDrawer={closeDrawer} />}
       </Drawer>
 
       {routes.map((route) => {

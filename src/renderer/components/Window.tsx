@@ -1,5 +1,9 @@
 import { useEffect, useRef } from "react";
 import { Route } from "../../common/routes";
+import { useAppStore } from "../store";
+
+const SIDEMENU_WIDTH = 93;
+const DRAWER_WIDTH = 360;
 
 type WindowProps = {
   route: Route;
@@ -7,6 +11,7 @@ type WindowProps = {
 
 const Window = ({ route }: WindowProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { drawerOpen } = useAppStore();
   useEffect(() => {
     window.electronAPI.invoke("activate-tab", { route }).then(() => {
       updateBounds();
@@ -45,13 +50,20 @@ const Window = ({ route }: WindowProps) => {
     window.electronAPI.invoke("update-view-bounds", {
       route,
       bounds: {
-        x: 93,
+        x: SIDEMENU_WIDTH + (drawerOpen ? DRAWER_WIDTH : 0),
         y: 0,
-        width: Math.round(rect.width),
+        width: Math.max(
+          200,
+          Math.round(rect.width) - (drawerOpen ? DRAWER_WIDTH : 0),
+        ),
         height: Math.round(rect.height),
       },
     });
   };
+
+  useEffect(() => {
+    updateBounds();
+  }, [route.id, drawerOpen]);
 
   const handleRefresh = (route: Route) => {
     window.electronAPI.invoke("refresh-view", { route });
@@ -75,9 +87,9 @@ const Window = ({ route }: WindowProps) => {
         ref={containerRef}
         style={{
           position: "absolute",
-          left: 93,
+          left: SIDEMENU_WIDTH,
           top: 0,
-          width: "calc(100% - 93px)",
+          width: `calc(100% - ${SIDEMENU_WIDTH}px)`,
           height: "calc(100%)",
           background: "#f0f0f0", // placeholder while loading
           overflow: "hidden",

@@ -9,6 +9,7 @@ const validChannels = [
   "tabId-change",
   "refresh-view",
   "open-external-link",
+  "create-route-view",
 ];
 
 contextBridge.exposeInMainWorld("electronAPI", {
