@@ -7,6 +7,8 @@ export type Route = {
   label: string;
   loadURL: string;
   partition: string;
+  internalHosts?: string[];
+  openExternalLinksInBrowser?: boolean;
 };
 
 // refactor this to store/settings so it is not hardcoded and can be edited
@@ -18,6 +20,7 @@ const routes = [
     label: "Facebook",
     loadURL: "https://facebook.com/messages",
     partition: "persist:gmail-facebook",
+    internalHosts: ["facebook.com", "messenger.com", "fbcdn.net", "fbsbx.com"],
   },
   {
     path: "/gmail1",
@@ -26,6 +29,14 @@ const routes = [
     label: "Gmail 1",
     loadURL: "https://mail.google.com",
     partition: "persist:gmail-gmail1",
+    openExternalLinksInBrowser: false,
+    internalHosts: [
+      "mail.google.com",
+      "google.com",
+      "googleapis.com",
+      "googleusercontent.com",
+      "gstatic.com",
+    ],
   },
   {
     path: "/gmail2",
@@ -34,6 +45,14 @@ const routes = [
     label: "Gmail 2",
     loadURL: "https://mail.google.com",
     partition: "persist:gmail-gmail2",
+    openExternalLinksInBrowser: false,
+    internalHosts: [
+      "mail.google.com",
+      "google.com",
+      "googleapis.com",
+      "googleusercontent.com",
+      "gstatic.com",
+    ],
   },
   {
     path: "/gmail3",
@@ -42,6 +61,14 @@ const routes = [
     label: "Gmail 3",
     loadURL: "https://mail.google.com",
     partition: "persist:gmail-gmail3",
+    openExternalLinksInBrowser: false,
+    internalHosts: [
+      "mail.google.com",
+      "google.com",
+      "googleapis.com",
+      "googleusercontent.com",
+      "gstatic.com",
+    ],
   },
   {
     path: "/discord1",
@@ -50,6 +77,7 @@ const routes = [
     label: "Discord",
     loadURL: "https://discord.com/channels/@me",
     partition: "persist:discord-discord1",
+    internalHosts: ["discord.com", "discordapp.com"],
   },
 ];
 

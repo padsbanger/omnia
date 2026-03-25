@@ -9,7 +9,10 @@ import {
 import path from "node:path";
 import routes, { Route } from "../../common/routes";
 import extractUnreadFromTitle from "../../common/utils/extractUnreadFromTitle";
-import isExternalUrl from "../../common/utils/isExternalUrl";
+import {
+  getExternalUrlTarget,
+  default as isExternalUrl,
+} from "../../common/utils/isExternalUrl";
 
 const createWindow = () => {
   let mainWindow: BrowserWindow | null = null;
@@ -31,6 +34,10 @@ const createWindow = () => {
   routes.forEach((route) => {
     const partition = route.partition;
     const ses = session.fromPartition(partition);
+    const internalHosts = route.internalHosts ?? [
+      new URL(route.loadURL).hostname,
+    ];
+    const openExternalLinksInBrowser = route.openExternalLinksInBrowser ?? true;
 
     const view = new WebContentsView({
       webPreferences: {
@@ -70,23 +77,38 @@ const createWindow = () => {
 
     const webContents = view.webContents;
 
+    const openInExternalBrowser = (url: string) => {
+      const externalTarget = getExternalUrlTarget(url, internalHosts) ?? url;
+
+      return shell.openExternal(externalTarget).catch((err) => {
+        console.error(`Failed to open external URL: ${externalTarget}`, err);
+      });
+    };
+
+    const shouldOpenExternally = (url: string) => {
+      return isExternalUrl(url, internalHosts);
+    };
+
     webContents.on("will-navigate", (event, url) => {
-      // need to block auth redirects but allow external links to open in browser
-      if (isExternalUrl(url)) {
+      if (shouldOpenExternally(url)) {
         event.preventDefault();
-        shell.openExternal(url).catch((err) => {
-          console.error(`Failed to open external URL: ${url}`, err);
-        });
+        void openInExternalBrowser(url);
       }
     });
 
     webContents.setWindowOpenHandler(({ url }) => {
-      if (isExternalUrl(url)) {
-        shell.openExternal(url).catch((err) => {
-          console.error(`Failed to open external URL: ${url}`, err);
+      if (!openExternalLinksInBrowser && !shouldOpenExternally(url)) {
+        webContents.loadURL(url).catch((err) => {
+          console.error(`Failed to load popup URL in-app: ${url}`, err);
         });
         return { action: "deny" };
       }
+
+      if (shouldOpenExternally(url)) {
+        void openInExternalBrowser(url);
+        return { action: "deny" };
+      }
+
       return { action: "allow" };
     });
 
@@ -132,7 +154,6 @@ const createWindow = () => {
     mainWindow.contentView.addChildView(view);
 
     view.setBounds(bounds);
-    console.log("Bounds updated for", route.id, bounds);
     return { success: true };
   });
 

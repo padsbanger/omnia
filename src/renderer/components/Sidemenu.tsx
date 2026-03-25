@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Button, Drawer, Tooltip } from "@heroui/react";
 import { IoTrashBin } from "react-icons/io5";
 import { useAppStore } from "../store";
+
 const Sidemenu = () => {
   const { activeTab, unreadCounts, setActiveTab, updateUnreadCount } =
     useAppStore();
