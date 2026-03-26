@@ -1,4 +1,4 @@
-import routes, { Route } from "../../common/routes";
+import { Route } from "../../common/routes";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -14,6 +14,7 @@ interface AppState {
   updateUnreadCount: (tabId: string, count: number) => void;
   setDrawerOpen: (isOpen: boolean) => void;
   addRoute: (route: Route) => void;
+  updateRoutesOrder: (routes: Array<Route>) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -39,6 +40,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           routes: [...state.routes, route],
         })),
+      updateRoutesOrder: (routes) => set({ routes }),
     }),
     {
       name: "omnia-app-storage", // Key for localStorage

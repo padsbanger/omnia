@@ -99,19 +99,18 @@ const createWindow = () => {
     });
 
     webContents.setWindowOpenHandler(({ url }) => {
-      if (!openExternalLinksInBrowser && !shouldOpenExternally(url)) {
-        webContents.loadURL(url).catch((err) => {
-          console.error(`Failed to load popup URL in-app: ${url}`, err);
-        });
-        return { action: "deny" };
-      }
-
       if (shouldOpenExternally(url)) {
         void openInExternalBrowser(url);
         return { action: "deny" };
       }
 
-      return { action: "allow" };
+      // Internal URL (e.g. OAuth popup) — load in-place to avoid a floating
+      // BrowserWindow popup. The OAuth redirect will bring the user back.
+      webContents.loadURL(url).catch((err) => {
+        console.error(`Failed to load popup URL in-app: ${url}`, err);
+      });
+      return { action: "deny" };
+
     });
 
     views.set(route.id, view);
@@ -136,7 +135,7 @@ const createWindow = () => {
     );
   }
 
-  // mainWindow.webContents.openDevTools();
+  mainWindow.webContents.openDevTools();
 
   return mainWindow;
 };

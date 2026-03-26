@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { WindowIcon } from "./WindowIcon";
 import { IoMdAdd } from "react-icons/io";
-import { useEffect } from "react";
+import { useEffect, useState, type DragEvent } from "react";
 import { Button, Drawer, Tooltip } from "@heroui/react";
 import { IoTrashBin } from "react-icons/io5";
 import { useAppStore } from "../store";
@@ -16,7 +16,10 @@ const Sidemenu = () => {
     routes,
     drawerOpen,
     setDrawerOpen,
+    updateRoutesOrder,
   } = useAppStore();
+  const [draggedRouteId, setDraggedRouteId] = useState<string | null>(null);
+  const [dragOverRouteId, setDragOverRouteId] = useState<string | null>(null);
 
   const openDrawer = () => {
     setDrawerOpen(true);
@@ -24,6 +27,47 @@ const Sidemenu = () => {
 
   const closeDrawer = () => {
     setDrawerOpen(false);
+  };
+
+  const handleDragStart = (routeId: string) => {
+    setDraggedRouteId(routeId);
+  };
+
+  const handleDragOver = (
+    event: DragEvent<HTMLDivElement>,
+    routeId: string,
+  ) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+
+    if (!draggedRouteId || draggedRouteId === routeId) {
+      setDragOverRouteId(null);
+      return;
+    }
+
+    setDragOverRouteId(routeId);
+  };
+
+  const handleDrop = (targetRouteId: string) => {
+    if (!draggedRouteId || draggedRouteId === targetRouteId) return;
+
+    const fromIndex = routes.findIndex((route) => route.id === draggedRouteId);
+    const toIndex = routes.findIndex((route) => route.id === targetRouteId);
+
+    if (fromIndex < 0 || toIndex < 0) return;
+
+    const nextRoutes = [...routes];
+    const [movedRoute] = nextRoutes.splice(fromIndex, 1);
+    nextRoutes.splice(toIndex, 0, movedRoute);
+
+    updateRoutesOrder(nextRoutes);
+    setDraggedRouteId(null);
+    setDragOverRouteId(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedRouteId(null);
+    setDragOverRouteId(null);
   };
 
   useEffect(() => {
@@ -89,27 +133,38 @@ const Sidemenu = () => {
 
         {drawerOpen && <CreateNewRouteForm closeDrawer={closeDrawer} />}
       </Drawer>
-
       {routes.map((route) => {
         const isActive = route.id === activeTab;
         return (
-          <Link
-            to={route.path}
+          <div
             key={route.id}
-            className={`w-full text-center py-3 px-2 flex flex-col gap-2 align-middle text-sm font-medium transition-colors duration-200 mx-2 last:mb-0 relative ${
-              isActive
-                ? "bg-blue-500 text-white shadow-inner"
-                : "text-white hover:bg-gray-700"
-            }`}
+            draggable
+            onDragStart={() => handleDragStart(route.id)}
+            onDragOver={(event) => handleDragOver(event, route.id)}
+            onDrop={() => handleDrop(route.id)}
+            onDragEnd={handleDragEnd}
+            className="w-full"
           >
-            <WindowIcon className="m-auto" icon={route.icon} />
-            {route.label}
-            {unreadCounts[route.id] > 0 && (
-              <span className="absolute top-1 right-1 bg-red-500 text-white text-sm rounded-full px-1 min-w-5 h-5 flex items-center justify-center">
-                {unreadCounts[route.id]}
-              </span>
+            {dragOverRouteId === route.id && draggedRouteId !== route.id && (
+              <div className="mx-2 my-1 h-9 rounded-md border-2 border-dashed border-blue-400 bg-blue-500/15" />
             )}
-          </Link>
+            <Link
+              to={route.path}
+              className={`w-full text-center py-3 px-2  flex flex-col gap-2 align-middle text-sm font-medium transition-colors duration-200 last:mb-0 relative cursor-move ${
+                isActive
+                  ? "bg-blue-500 text-white shadow-inner"
+                  : "text-white hover:bg-gray-700"
+              } ${draggedRouteId === route.id ? "opacity-60" : "opacity-100"}`}
+            >
+              <WindowIcon className="m-auto" icon={route.icon} />
+              {route.label}
+              {unreadCounts[route.id] > 0 && (
+                <span className="absolute top-1 right-1 bg-red-500 text-white text-sm rounded-full px-1 min-w-5 h-5 flex items-center justify-center">
+                  {unreadCounts[route.id]}
+                </span>
+              )}
+            </Link>
+          </div>
         );
       })}
       <Tooltip>

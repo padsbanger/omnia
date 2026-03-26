@@ -8,6 +8,23 @@ type CreateNewRouteFormProps = {
   closeDrawer: () => void;
 };
 
+type RouteNavigationConfig = {
+  internalHosts: string[];
+  openExternalLinksInBrowser: boolean;
+};
+
+type ApplicationKey = "gmail" | "discord" | "facebook" | "tradingview";
+
+const APPLICATION_DEFAULTS: Record<
+  ApplicationKey,
+  { label: string; url: string }
+> = {
+  gmail: { label: "Gmail", url: "https://mail.google.com" },
+  discord: { label: "Discord", url: "https://discord.com/channels/@me" },
+  facebook: { label: "Messenger", url: "https://facebook.com/messages" },
+  tradingview: { label: "TradingView", url: "https://www.tradingview.com" },
+};
+
 const buildRouteId = (label: string) =>
   `${label
     .toLowerCase()
@@ -15,18 +32,94 @@ const buildRouteId = (label: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "")}-${Date.now().toString(36)}`;
 
+const getRouteNavigationConfig = (
+  icon: string,
+  hostname: string,
+): RouteNavigationConfig => {
+  const lowerHost = hostname.toLowerCase();
+
+  const isGoogleHost =
+    lowerHost.endsWith("google.com") ||
+    lowerHost.endsWith("gmail.com") ||
+    lowerHost.endsWith("googleusercontent.com") ||
+    lowerHost.endsWith("gstatic.com");
+
+  if (icon === "gmail" || isGoogleHost) {
+    return {
+      internalHosts: [
+        "mail.google.com",
+        "accounts.google.com",
+        "google.com",
+        "googleapis.com",
+        "googleusercontent.com",
+        "gstatic.com",
+      ],
+      openExternalLinksInBrowser: true,
+    };
+  }
+
+  if (icon === "discord" || lowerHost.endsWith("discord.com")) {
+    return {
+      internalHosts: ["discord.com", "discordapp.com"],
+      openExternalLinksInBrowser: true,
+    };
+  }
+
+  if (
+    icon === "facebook" ||
+    lowerHost.endsWith("facebook.com") ||
+    lowerHost.endsWith("messenger.com")
+  ) {
+    return {
+      internalHosts: [
+        "facebook.com",
+        "messenger.com",
+        "fbcdn.net",
+        "fbsbx.com",
+      ],
+      openExternalLinksInBrowser: true,
+    };
+  }
+
+  if (icon === "tradingview" || lowerHost.endsWith("tradingview.com")) {
+    return {
+      internalHosts: [
+        "tradingview.com",
+        "sso.tradingview.com",
+        "mail.google.com",
+        "accounts.google.com",
+        "google.com",
+        "googleapis.com",
+        "googleusercontent.com",
+        "gstatic.com",
+      ],
+      openExternalLinksInBrowser: true,
+    };
+  }
+
+  return {
+    internalHosts: [hostname],
+    openExternalLinksInBrowser: true,
+  };
+};
+
 const CreateNewRouteForm = ({ closeDrawer }: CreateNewRouteFormProps) => {
   const navigate = useNavigate();
   const { addRoute, setActiveTab } = useAppStore();
 
   const [label, setLabel] = useState("");
-  const [url, setUrl] = useState("");
-  const [icon, setIcon] = useState("gmail");
+  const [application, setApplication] = useState<ApplicationKey>("gmail");
+  const [url, setUrl] = useState(APPLICATION_DEFAULTS.gmail.url);
 
   const canSubmit = useMemo(
     () => label.trim().length > 0 && url.trim().length > 0,
     [label, url],
   );
+
+  const handleApplicationChange = (value: ApplicationKey) => {
+    setApplication(value);
+    setUrl(APPLICATION_DEFAULTS[value].url);
+  };
 
   const normalizeUrl = (rawValue: string) => {
     const trimmed = rawValue.trim();
@@ -50,16 +143,18 @@ const CreateNewRouteForm = ({ closeDrawer }: CreateNewRouteFormProps) => {
       return;
     }
 
+    const navigationConfig = getRouteNavigationConfig(application, hostname);
+
     const routeId = buildRouteId(label);
     const route: Route = {
       id: routeId,
       label: label.trim(),
-      icon,
+      icon: application,
       path: `/${routeId}`,
       loadURL: normalizedUrl,
       partition: `persist:user-${routeId}`,
-      internalHosts: [hostname],
-      openExternalLinksInBrowser: true,
+      internalHosts: navigationConfig.internalHosts,
+      openExternalLinksInBrowser: navigationConfig.openExternalLinksInBrowser,
     };
 
     const result = await window.electronAPI.invoke("create-route-view", {
@@ -113,13 +208,16 @@ const CreateNewRouteForm = ({ closeDrawer }: CreateNewRouteFormProps) => {
                     required
                   />
                 </label>
-
                 <label className="text-sm flex flex-col gap-1">
-                  Icon
+                  Application
                   <select
                     className="border rounded px-2 py-1"
-                    value={icon}
-                    onChange={(event) => setIcon(event.target.value)}
+                    value={application}
+                    onChange={(event) =>
+                      handleApplicationChange(
+                        event.target.value as ApplicationKey,
+                      )
+                    }
                   >
                     <option value="gmail">Gmail</option>
                     <option value="discord">Discord</option>
