@@ -2,11 +2,8 @@ name: Build & Release
 
 on:
   push:
-    branches:
-      - main
     tags:
       - 'v*'
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -54,7 +51,7 @@ jobs:
     name: Create GitHub Release
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: startsWith(github.ref, 'refs/tags/v') && github.event_name == 'push'
 
     steps:
       - name: Checkout code
@@ -65,14 +62,9 @@ jobs:
         with:
           path: artifacts
 
-      - name: Generate version tag
-        id: version
-        run: echo "tag=v$(date +%Y.%m.%d.%H%M%S)" >> $GITHUB_OUTPUT
-
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.version.outputs.tag }}
           files: artifacts/**/*
           draft: false
           prerelease: false
