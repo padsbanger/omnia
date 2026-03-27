@@ -7,25 +7,24 @@ interface AppState {
   activeTab: string | null;
   unreadCounts: Record<string, number>;
   routes: Array<Route>;
-  drawerOpen: boolean;
-
+  activeDrawer: "create" | "manage" | null;
   toggleSidebar: () => void;
   setActiveTab: (tabId: string | null) => void;
   updateUnreadCount: (tabId: string, count: number) => void;
-  setDrawerOpen: (isOpen: boolean) => void;
+  setActiveDrawer: (drawer: "create" | "manage" | null) => void;
   addRoute: (route: Route) => void;
+  removeRoute: (routeId: string) => void;
   updateRoutesOrder: (routes: Array<Route>) => void;
 }
 
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
-      // Initial state
       sidebarCollapsed: false,
       activeTab: null as string | null,
       unreadCounts: {},
       routes: [] as Array<Route>,
-      drawerOpen: false,
+      activeDrawer: null as "create" | "manage" | null,
 
       // Actions
       toggleSidebar: () =>
@@ -35,11 +34,22 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           unreadCounts: { ...state.unreadCounts, [tabId]: count },
         })),
-      setDrawerOpen: (drawerOpen) => set({ drawerOpen }),
+      setActiveDrawer: (activeDrawer) => set({ activeDrawer }),
       addRoute: (route) =>
         set((state) => ({
           routes: [...state.routes, route],
         })),
+      removeRoute: (routeId) =>
+        set((state) => {
+          const nextUnreadCounts = { ...state.unreadCounts };
+          delete nextUnreadCounts[routeId];
+
+          return {
+            routes: state.routes.filter((route) => route.id !== routeId),
+            unreadCounts: nextUnreadCounts,
+            activeTab: state.activeTab === routeId ? null : state.activeTab,
+          };
+        }),
       updateRoutesOrder: (routes) => set({ routes }),
     }),
     {

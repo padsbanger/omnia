@@ -13,6 +13,7 @@ type RegisterIpcHandlersParams = {
   views: Map<string, WebContentsView>;
   routes: Route[];
   createViewForRoute: (route: Route) => WebContentsView | null;
+  removeRouteView: (route: Route) => Promise<boolean>;
 };
 
 type Bounds = {
@@ -27,6 +28,7 @@ export default function registerIpcHandlers({
   views,
   routes,
   createViewForRoute,
+  removeRouteView,
 }: RegisterIpcHandlersParams) {
   ipcMain.removeHandler("activate-tab");
   ipcMain.handle(
@@ -130,6 +132,32 @@ export default function registerIpcHandlers({
 
       if (!routes.some((existingRoute) => existingRoute.id === route.id)) {
         routes.push(route);
+      }
+
+      return { success: true };
+    },
+  );
+
+  ipcMain.removeHandler("delete-route-view");
+  ipcMain.handle(
+    "delete-route-view",
+    async (_event, { route }: { route: Route }) => {
+      if (!route || !route.id) {
+        return { success: false, reason: "Invalid route" };
+      }
+
+      const deleted = await removeRouteView(route);
+
+      if (!deleted) {
+        return { success: false, reason: "Failed to delete route view" };
+      }
+
+      const routeIndex = routes.findIndex(
+        (existingRoute) => existingRoute.id === route.id,
+      );
+
+      if (routeIndex >= 0) {
+        routes.splice(routeIndex, 1);
       }
 
       return { success: true };

@@ -10,6 +10,7 @@ const validChannels = [
   "refresh-view",
   "open-external-link",
   "create-route-view",
+  "delete-route-view",
 ];
 
 contextBridge.exposeInMainWorld("electronAPI", {

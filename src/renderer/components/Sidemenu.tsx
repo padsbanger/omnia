@@ -3,9 +3,10 @@ import { WindowIcon } from "./WindowIcon";
 import { IoMdAdd } from "react-icons/io";
 import { useEffect, useState, type DragEvent } from "react";
 import { Button, Drawer, Tooltip } from "@heroui/react";
-import { IoTrashBin } from "react-icons/io5";
+import { FaEdit } from "react-icons/fa";
 import { useAppStore } from "../store";
 import CreateNewRouteForm from "./CreateNewRouteForm";
+import ManageRoutesDrawer from "./ManageRoutesDrawer";
 
 const Sidemenu = () => {
   const {
@@ -14,19 +15,15 @@ const Sidemenu = () => {
     setActiveTab,
     updateUnreadCount,
     routes,
-    drawerOpen,
-    setDrawerOpen,
+    activeDrawer,
+    setActiveDrawer,
     updateRoutesOrder,
   } = useAppStore();
   const [draggedRouteId, setDraggedRouteId] = useState<string | null>(null);
   const [dragOverRouteId, setDragOverRouteId] = useState<string | null>(null);
 
-  const openDrawer = () => {
-    setDrawerOpen(true);
-  };
-
   const closeDrawer = () => {
-    setDrawerOpen(false);
+    setActiveDrawer(null);
   };
 
   const handleDragStart = (routeId: string) => {
@@ -71,13 +68,13 @@ const Sidemenu = () => {
   };
 
   useEffect(() => {
-    if (drawerOpen) return;
+    if (activeDrawer) return;
 
     const activeRoute = routes.find((route) => route.id === activeTab);
     if (!activeRoute) return;
 
     window.electronAPI.invoke("activate-tab", { route: activeRoute });
-  }, [drawerOpen, activeTab, routes]);
+  }, [activeDrawer, activeTab, routes]);
 
   useEffect(() => {
     const unsubscribe = window.electronAPI.onFromMain(
@@ -112,17 +109,33 @@ const Sidemenu = () => {
   }, [updateUnreadCount]);
 
   useEffect(() => {
-    return () => setDrawerOpen(false);
-  }, [setDrawerOpen]);
+    return () => setActiveDrawer(null);
+  }, [setActiveDrawer]);
+
+  const activeDrawerContent =
+    activeDrawer === "create" ? (
+      <CreateNewRouteForm key="create" closeDrawer={closeDrawer} />
+    ) : activeDrawer === "manage" ? (
+      <ManageRoutesDrawer key="manage" closeDrawer={closeDrawer} />
+    ) : null;
 
   return (
     <div className="w-23.25 h-full bg-gray-800 shadow-lg flex flex-col items-center">
-      <Drawer>
+      <Drawer
+        isOpen={activeDrawer !== null}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            closeDrawer();
+          }
+        }}
+      >
         <Tooltip>
           <Button
             isIconOnly
             className="my-6 text-white hover:bg-gray-700"
-            onClick={openDrawer}
+            onClick={() => {
+              setActiveDrawer("create");
+            }}
           >
             <IoMdAdd />
           </Button>
@@ -131,7 +144,7 @@ const Sidemenu = () => {
           </Tooltip.Content>
         </Tooltip>
 
-        {drawerOpen && <CreateNewRouteForm closeDrawer={closeDrawer} />}
+        {activeDrawerContent}
       </Drawer>
       {routes.map((route) => {
         const isActive = route.id === activeTab;
@@ -167,20 +180,22 @@ const Sidemenu = () => {
           </div>
         );
       })}
-      <Tooltip>
-        <Button
-          isIconOnly
-          className={"absolute bottom-6"}
-          onClick={() => {
-            window.electronAPI.invoke("clear-partitions");
-          }}
-        >
-          <IoTrashBin />
-        </Button>
-        <Tooltip.Content>
-          <p>Clear all routes data.</p>
-        </Tooltip.Content>
-      </Tooltip>
+      {routes.length > 0 && (
+        <Tooltip>
+          <Button
+            isIconOnly
+            className={"absolute bottom-6"}
+            onClick={() => {
+              setActiveDrawer("manage");
+            }}
+          >
+            <FaEdit />
+          </Button>
+          <Tooltip.Content>
+            <p>Clear all routes data.</p>
+          </Tooltip.Content>
+        </Tooltip>
+      )}
     </div>
   );
 };

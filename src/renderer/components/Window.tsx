@@ -11,7 +11,7 @@ type WindowProps = {
 
 const Window = ({ route }: WindowProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { drawerOpen } = useAppStore();
+  const { activeDrawer } = useAppStore();
   useEffect(() => {
     window.electronAPI.invoke("activate-tab", { route }).then(() => {
       updateBounds();
@@ -50,11 +50,11 @@ const Window = ({ route }: WindowProps) => {
     window.electronAPI.invoke("update-view-bounds", {
       route,
       bounds: {
-        x: SIDEMENU_WIDTH + (drawerOpen ? DRAWER_WIDTH : 0),
+        x: SIDEMENU_WIDTH + (activeDrawer ? DRAWER_WIDTH : 0),
         y: 0,
         width: Math.max(
           200,
-          Math.round(rect.width) - (drawerOpen ? DRAWER_WIDTH : 0),
+          Math.round(rect.width) - (activeDrawer ? DRAWER_WIDTH : 0),
         ),
         height: Math.round(rect.height),
       },
@@ -63,7 +63,7 @@ const Window = ({ route }: WindowProps) => {
 
   useEffect(() => {
     updateBounds();
-  }, [route.id, drawerOpen]);
+  }, [route.id, activeDrawer]);
 
   const handleRefresh = (route: Route) => {
     window.electronAPI.invoke("refresh-view", { route });

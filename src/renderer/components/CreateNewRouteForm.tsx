@@ -105,7 +105,7 @@ const getRouteNavigationConfig = (
 
 const CreateNewRouteForm = ({ closeDrawer }: CreateNewRouteFormProps) => {
   const navigate = useNavigate();
-  const { addRoute, setActiveTab } = useAppStore();
+  const { addRoute, setActiveTab, setActiveDrawer } = useAppStore();
 
   const [label, setLabel] = useState("");
   const [application, setApplication] = useState<ApplicationKey>("gmail");
@@ -165,6 +165,7 @@ const CreateNewRouteForm = ({ closeDrawer }: CreateNewRouteFormProps) => {
       addRoute(route);
       setActiveTab(route.id);
       navigate(route.path);
+      setActiveDrawer(null);
       closeDrawer();
     }
   };
@@ -184,7 +185,7 @@ const CreateNewRouteForm = ({ closeDrawer }: CreateNewRouteFormProps) => {
             </Drawer.Header>
             <Drawer.Body>
               <form
-                className="flex flex-col gap-3"
+                className="flex flex-col gap-3 pr-5"
                 onSubmit={handleCreateRoute}
               >
                 <label className="text-sm flex flex-col gap-1">
@@ -194,17 +195,6 @@ const CreateNewRouteForm = ({ closeDrawer }: CreateNewRouteFormProps) => {
                     value={label}
                     onChange={(event) => setLabel(event.target.value)}
                     placeholder="Work Gmail"
-                    required
-                  />
-                </label>
-
-                <label className="text-sm flex flex-col gap-1">
-                  URL
-                  <input
-                    className="border rounded px-2 py-1"
-                    value={url}
-                    onChange={(event) => setUrl(event.target.value)}
-                    placeholder="mail.google.com"
                     required
                   />
                 </label>
@@ -225,16 +215,21 @@ const CreateNewRouteForm = ({ closeDrawer }: CreateNewRouteFormProps) => {
                     <option value="tradingview">TradingView</option>
                   </select>
                 </label>
-
+                <label className="text-sm flex flex-col gap-1">
+                  URL
+                  <input
+                    className="border rounded px-2 py-1"
+                    value={url}
+                    onChange={(event) => setUrl(event.target.value)}
+                    placeholder="mail.google.com"
+                    required
+                  />
+                </label>
                 <div className="flex gap-2 justify-end mt-2">
-                  <Button type="button" variant="outline" onClick={closeDrawer}>
+                  <Button type="button" onClick={closeDrawer}>
                     Cancel
                   </Button>
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    isDisabled={!canSubmit}
-                  >
+                  <Button type="submit" isDisabled={!canSubmit}>
                     Save route
                   </Button>
                 </div>

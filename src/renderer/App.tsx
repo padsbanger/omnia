@@ -11,20 +11,25 @@ function AppWithKeyboardShortcuts() {
   const { activeTab, routes } = useAppStore();
 
   useEffect(() => {
-    // Only navigate on initial load if we're at root path
-    if (window.location.pathname === "/") {
-      if (activeTab) {
-        const activeRoute = routes.find((route) => route.id === activeTab);
-        if (activeRoute) {
-          navigate(activeRoute.path);
-        }
-      } else {
-        // Default to first route
-        const firstRoute = routes[0];
-        if (firstRoute) {
-          navigate(firstRoute.path);
-        }
+    const hasMatchingRoute = routes.some(
+      (route) => route.path === window.location.pathname,
+    );
+
+    if (hasMatchingRoute) {
+      return;
+    }
+
+    if (activeTab) {
+      const activeRoute = routes.find((route) => route.id === activeTab);
+      if (activeRoute) {
+        navigate(activeRoute.path, { replace: true });
+        return;
       }
+    }
+
+    const firstRoute = routes[0];
+    if (firstRoute) {
+      navigate(firstRoute.path, { replace: true });
     }
   }, [activeTab, navigate, routes]);
 
