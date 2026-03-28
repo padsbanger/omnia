@@ -95,9 +95,7 @@ const Window = ({ route }: WindowProps) => {
           overflow: "hidden",
           zIndex: 1,
         }}
-      >
-        content area
-      </div>
+      ></div>
     </>
   );
 };

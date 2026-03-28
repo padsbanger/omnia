@@ -10,6 +10,15 @@ function AppWithKeyboardShortcuts() {
   const navigate = useNavigate();
   const { activeTab, routes } = useAppStore();
 
+  // Pre-create all route views in the background on startup so that
+  // page-title-updated fires for every tab immediately, enabling unread
+  // notification counts to be gathered before the user visits each tab.
+  useEffect(() => {
+    routes.forEach((route) => {
+      window.electronAPI.invoke("create-route-view", { route });
+    });
+  }, []);
+
   useEffect(() => {
     const hasMatchingRoute = routes.some(
       (route) => route.path === window.location.pathname,

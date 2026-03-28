@@ -1,4 +1,3 @@
-import { type ReactNode } from "react";
 import { Button, Description, Drawer, Label, Tooltip } from "@heroui/react";
 import { useNavigate } from "react-router-dom";
 import { useAppStore } from "../store";
@@ -72,17 +71,23 @@ const ManageRoutesDrawer = ({ closeDrawer }: ManageRoutesDrawerProps) => {
                         <Description>{route.loadURL}</Description>
                       </div>
                       <div className="flex flex-row ml-auto mr-2 gap-1">
-                        <Button
-                          isIconOnly
-                          variant="secondary"
-                          onClick={() => {
-                            window.electronAPI.invoke("refresh-view", {
-                              route,
-                            });
-                          }}
-                        >
-                          <IoIosRefresh />
-                        </Button>
+                        <Tooltip>
+                          <Button
+                            isIconOnly
+                            variant="secondary"
+                            onClick={() => {
+                              window.electronAPI.invoke("refresh-view", {
+                                route,
+                              });
+                            }}
+                          >
+                            <IoIosRefresh />
+                          </Button>
+                          <Tooltip.Content>
+                            <p>Refresh this route.</p>
+                          </Tooltip.Content>
+                        </Tooltip>
+
                         <Tooltip>
                           <Button
                             isIconOnly
