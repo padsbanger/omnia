@@ -4,6 +4,7 @@ import { useAppStore } from "../store";
 import { IoTrashBin } from "react-icons/io5";
 import { IoIosRefresh } from "react-icons/io";
 import { RiCloseFill } from "react-icons/ri";
+import { WindowIcon } from "./WindowIcon";
 
 type ManageRoutesDrawerProps = {
   closeDrawer: () => void;
@@ -58,65 +59,74 @@ const ManageRoutesDrawer = ({ closeDrawer }: ManageRoutesDrawerProps) => {
               <Drawer.Heading>Manage routes</Drawer.Heading>
             </Drawer.Header>
             <Drawer.Body>
-              <div className="flex flex-col gap-3 p-2">
+              <div className="flex flex-col gap-4 pr-4">
                 {routes.length === 0 ? (
-                  <div className="rounded-lg border border-dashed border-gray-300 px-4 py-6 text-sm text-gray-500">
+                  <div className="rounded-lg border border-dashed border-gray-300 px-2 py-6 text-sm text-gray-500">
                     No routes yet.
                   </div>
                 ) : (
                   routes.map((route) => (
-                    <div className="flex flex-row">
-                      <div className="flex flex-col">
-                        <Label>{route.label}</Label>
-                        <Description>{route.loadURL}</Description>
+                    <div
+                      className="flex flex-col p-3 rounded-md border"
+                      key={route.id}
+                    >
+                      <div className="flex flex-row gap-2">
+                        <WindowIcon icon={route.icon} />
+                        <div className="flex flex-col">
+                          <Label>{route.label}</Label>
+                          <Description>{route.loadURL}</Description>
+                        </div>
                       </div>
-                      <div className="flex flex-row ml-auto mr-2 gap-1">
-                        <Tooltip>
-                          <Button
-                            isIconOnly
-                            variant="secondary"
-                            onClick={() => {
-                              window.electronAPI.invoke("refresh-view", {
-                                route,
-                              });
-                            }}
-                          >
-                            <IoIosRefresh />
-                          </Button>
-                          <Tooltip.Content>
-                            <p>Refresh this route.</p>
-                          </Tooltip.Content>
-                        </Tooltip>
+                      <div className="flex flew-row gap-3 mt-3 align-baseline justify-start items-center">
+                        <Label>Actions: </Label>
+                        <div className="flex flex-row mr-2 gap-2">
+                          <Tooltip>
+                            <Button
+                              isIconOnly
+                              variant="secondary"
+                              onClick={() => {
+                                window.electronAPI.invoke("refresh-view", {
+                                  route,
+                                });
+                              }}
+                            >
+                              <IoIosRefresh />
+                            </Button>
+                            <Tooltip.Content>
+                              <p>Refresh this route.</p>
+                            </Tooltip.Content>
+                          </Tooltip>
 
-                        <Tooltip>
-                          <Button
-                            isIconOnly
-                            variant="secondary"
-                            onClick={() => {
-                              window.electronAPI.invoke(
-                                "clear-single-partition",
-                                { route },
-                              );
-                            }}
-                          >
-                            <IoTrashBin />
-                          </Button>
-                          <Tooltip.Content>
-                            <p>Clear site data for this route.</p>
-                          </Tooltip.Content>
-                        </Tooltip>
-                        <Tooltip>
-                          <Button
-                            isIconOnly
-                            variant="secondary"
-                            onClick={() => handleDeleteRoute(route.id)}
-                          >
-                            <RiCloseFill />
-                          </Button>
-                          <Tooltip.Content>
-                            <p>Delete this route.</p>
-                          </Tooltip.Content>
-                        </Tooltip>
+                          <Tooltip>
+                            <Button
+                              isIconOnly
+                              variant="secondary"
+                              onClick={() => {
+                                window.electronAPI.invoke(
+                                  "clear-single-partition",
+                                  { route },
+                                );
+                              }}
+                            >
+                              <IoTrashBin />
+                            </Button>
+                            <Tooltip.Content>
+                              <p>Clear site data for this route.</p>
+                            </Tooltip.Content>
+                          </Tooltip>
+                          <Tooltip>
+                            <Button
+                              isIconOnly
+                              variant="secondary"
+                              onClick={() => handleDeleteRoute(route.id)}
+                            >
+                              <RiCloseFill />
+                            </Button>
+                            <Tooltip.Content>
+                              <p>Delete this route.</p>
+                            </Tooltip.Content>
+                          </Tooltip>
+                        </div>
                       </div>
                     </div>
                   ))

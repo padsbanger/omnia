@@ -172,7 +172,13 @@ const Sidemenu = () => {
               <WindowIcon className="m-auto" icon={route.icon} />
               {route.label}
               {unreadCounts[route.id] > 0 && (
-                <span className="absolute top-1 right-1 bg-red-500 text-white text-sm rounded-full px-1 min-w-5 h-5 flex items-center justify-center">
+                <span
+                  key={unreadCounts[route.id]} // Key ensures re-animation on count change
+                  className="absolute top-1 right-1
+                    bg-red-500 text-white text-sm rounded-full px-1 min-w-5 h-5 flex items-center justify-center
+                    animate-[fadeIn_0.3s_ease-out]
+                  "
+                >
                   {unreadCounts[route.id]}
                 </span>
               )}
@@ -192,7 +198,7 @@ const Sidemenu = () => {
             <FaEdit />
           </Button>
           <Tooltip.Content>
-            <p>Clear all routes data.</p>
+            <p>Edit routes.</p>
           </Tooltip.Content>
         </Tooltip>
       )}

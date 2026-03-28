@@ -13,7 +13,12 @@ type RouteNavigationConfig = {
   openExternalLinksInBrowser: boolean;
 };
 
-type ApplicationKey = "gmail" | "discord" | "facebook" | "tradingview";
+type ApplicationKey =
+  | "gmail"
+  | "discord"
+  | "facebook"
+  | "tradingview"
+  | "twitter";
 
 const APPLICATION_DEFAULTS: Record<
   ApplicationKey,
@@ -23,6 +28,7 @@ const APPLICATION_DEFAULTS: Record<
   discord: { label: "Discord", url: "https://discord.com/channels/@me" },
   facebook: { label: "Messenger", url: "https://facebook.com/messages" },
   tradingview: { label: "TradingView", url: "https://www.tradingview.com" },
+  twitter: { label: "Twitter", url: "https://twitter.com/home" },
 };
 
 const buildRouteId = (label: string) =>
@@ -86,6 +92,28 @@ const getRouteNavigationConfig = (
       internalHosts: [
         "tradingview.com",
         "sso.tradingview.com",
+        "mail.google.com",
+        "accounts.google.com",
+        "google.com",
+        "googleapis.com",
+        "googleusercontent.com",
+        "gstatic.com",
+      ],
+      openExternalLinksInBrowser: true,
+    };
+  }
+
+  if (
+    icon === "twitter" ||
+    lowerHost.endsWith("twitter.com") ||
+    lowerHost.endsWith("x.com")
+  ) {
+    return {
+      internalHosts: [
+        "twitter.com",
+        "x.com",
+        "t.co",
+        "twimg.com",
         "mail.google.com",
         "accounts.google.com",
         "google.com",
@@ -212,6 +240,7 @@ const CreateNewRouteForm = ({ closeDrawer }: CreateNewRouteFormProps) => {
                     <option value="gmail">Gmail</option>
                     <option value="discord">Discord</option>
                     <option value="facebook">Facebook</option>
+                    <option value="twitter">Twitter</option>
                     <option value="tradingview">TradingView</option>
                   </select>
                 </label>
