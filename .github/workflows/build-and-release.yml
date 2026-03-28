@@ -45,6 +45,7 @@ jobs:
         with:
           name: ${{ runner.os }}-dist
           path: out/make/**/*
+          if-no-files-found: error
           retention-days: 7
 
   release:

@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { Button, Description, Drawer, Label } from "@heroui/react";
+import { Button, Description, Drawer, Label, Tooltip } from "@heroui/react";
 import { useNavigate } from "react-router-dom";
 import { useAppStore } from "../store";
 import { IoTrashBin } from "react-icons/io5";
@@ -83,23 +83,35 @@ const ManageRoutesDrawer = ({ closeDrawer }: ManageRoutesDrawerProps) => {
                         >
                           <IoIosRefresh />
                         </Button>
-                        <Button
-                          isIconOnly
-                          variant="secondary"
-                          onClick={() => {
-                            // TODO: clear single partion
-                            // window.electronAPI.invoke("clear-partitions");
-                          }}
-                        >
-                          <IoTrashBin />
-                        </Button>
-                        <Button
-                          isIconOnly
-                          variant="secondary"
-                          onClick={() => handleDeleteRoute(route.id)}
-                        >
-                          <RiCloseFill />
-                        </Button>
+                        <Tooltip>
+                          <Button
+                            isIconOnly
+                            variant="secondary"
+                            onClick={() => {
+                              window.electronAPI.invoke(
+                                "clear-single-partition",
+                                { route },
+                              );
+                            }}
+                          >
+                            <IoTrashBin />
+                          </Button>
+                          <Tooltip.Content>
+                            <p>Clear site data for this route.</p>
+                          </Tooltip.Content>
+                        </Tooltip>
+                        <Tooltip>
+                          <Button
+                            isIconOnly
+                            variant="secondary"
+                            onClick={() => handleDeleteRoute(route.id)}
+                          >
+                            <RiCloseFill />
+                          </Button>
+                          <Tooltip.Content>
+                            <p>Delete this route.</p>
+                          </Tooltip.Content>
+                        </Tooltip>
                       </div>
                     </div>
                   ))

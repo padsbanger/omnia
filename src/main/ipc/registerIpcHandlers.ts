@@ -105,6 +105,28 @@ export default function registerIpcHandlers({
     });
   });
 
+  ipcMain.removeHandler("clear-single-partition");
+  ipcMain.handle(
+    "clear-single-partition",
+    async (_event, { route }: { route: Route }) => {
+      const ses = session.fromPartition(route.partition);
+      await ses.clearStorageData();
+      console.log(`Cleared partition ${route.partition}`);
+    },
+  );
+
+  ipcMain.removeHandler("clear-partitions");
+  ipcMain.handle("clear-partitions", async () => {
+    await session.defaultSession.clearStorageData();
+
+    routes.forEach((route) => {
+      const ses = session.fromPartition(route.partition);
+      ses.clearStorageData().then(() => {
+        console.log(`Cleared partition ${route.partition}`);
+      });
+    });
+  });
+
   ipcMain.removeHandler("open-external-link");
   ipcMain.handle("open-external-link", async (_, { url }) => {
     console.log("Request to open external link:", url);

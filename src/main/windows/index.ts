@@ -1,7 +1,8 @@
-import { BrowserWindow, session, shell, WebContentsView } from "electron";
+import { app, BrowserWindow, session, shell, WebContentsView } from "electron";
 import path from "node:path";
 import { Route } from "../../common/routes";
 import extractUnreadFromTitle from "../../common/utils/extractUnreadFromTitle";
+
 import {
   getExternalUrlTarget,
   default as isExternalUrl,
@@ -110,7 +111,6 @@ const createWindow = () => {
         console.error(`Failed to load popup URL in-app: ${url}`, err);
       });
       return { action: "deny" };
-
     });
 
     views.set(route.id, view);
@@ -180,7 +180,9 @@ const createWindow = () => {
     );
   }
 
-  mainWindow.webContents.openDevTools();
+  if (process.env.ELECTRON_ENV === "development") {
+    mainWindow.webContents.openDevTools();
+  }
 
   return mainWindow;
 };

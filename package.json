@@ -7,9 +7,9 @@
   "private": true,
   "scripts": {
     "start": "electron-forge start",
-    "package": "electron-forge package",
-    "make": "electron-forge make",
-    "publish": "electron-forge publish",
+    "package": "cross-env NODE_ENV=production electron-forge package",
+    "make": "cross-env NODE_ENV=production electron-forge make",
+    "publish": "cross-env NODE_ENV=production electron-forge publish",
     "lint": "eslint --ext .ts,.tsx ."
   },
   "build": {
@@ -43,6 +43,8 @@
     "@typescript-eslint/parser": "^5.62.0",
     "autoprefixer": "^10.4.27",
     "babel-loader": "^10.1.1",
+    "cross-env": "^10.1.0",
+    "dotenv": "^17.3.1",
     "electron": "41.0.3",
     "encoding": "^0.1.13",
     "eslint": "^8.57.1",

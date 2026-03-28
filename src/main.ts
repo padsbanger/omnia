@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { app, BrowserWindow } from "electron";
 import started from "electron-squirrel-startup";
 import createWindow from "./main/windows";
