@@ -249,6 +249,12 @@ const createWindow = () => {
     );
   }
 
+  mainWindow.on("resize", () => {
+    mainWindow?.webContents.send("main-window-resize", {
+      bounds: mainWindow.getBounds(),
+    });
+  });
+
   if (process.env.ELECTRON_ENV === "development") {
     mainWindow.webContents.openDevTools();
   }

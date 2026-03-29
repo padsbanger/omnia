@@ -12,6 +12,7 @@ const validChannels = [
   "create-route-view",
   "delete-route-view",
   "clear-single-partition",
+  "main-window-resize",
 ];
 
 contextBridge.exposeInMainWorld("electronAPI", {

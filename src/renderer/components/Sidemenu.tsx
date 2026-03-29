@@ -4,6 +4,7 @@ import { IoMdAdd } from "react-icons/io";
 import { useEffect, useState, type DragEvent } from "react";
 import { Button, Drawer, Tooltip } from "@heroui/react";
 import { FaEdit } from "react-icons/fa";
+import { TbLayoutColumns, TbLayoutGrid } from "react-icons/tb";
 import { useAppStore } from "../store";
 import CreateNewRouteForm from "./CreateNewRouteForm";
 import ManageRoutesDrawer from "./ManageRoutesDrawer";
@@ -16,6 +17,8 @@ const Sidemenu = () => {
     updateUnreadCount,
     routes,
     activeDrawer,
+    windowLayout,
+    setWindowLayout,
     setActiveDrawer,
     updateRoutesOrder,
   } = useAppStore();
@@ -68,13 +71,13 @@ const Sidemenu = () => {
   };
 
   useEffect(() => {
-    if (activeDrawer) return;
+    if (activeDrawer || windowLayout !== "single") return;
 
     const activeRoute = routes.find((route) => route.id === activeTab);
     if (!activeRoute) return;
 
     window.electronAPI.invoke("activate-tab", { route: activeRoute });
-  }, [activeDrawer, activeTab, routes]);
+  }, [activeDrawer, activeTab, routes, windowLayout]);
 
   useEffect(() => {
     const unsubscribe = window.electronAPI.onFromMain(
@@ -143,7 +146,6 @@ const Sidemenu = () => {
             <p>Add new route.</p>
           </Tooltip.Content>
         </Tooltip>
-
         {activeDrawerContent}
       </Drawer>
       {routes.map((route) => {

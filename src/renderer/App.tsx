@@ -3,12 +3,13 @@ import React, { useEffect } from "react";
 import { BrowserRouter, Route, Routes, useNavigate } from "react-router-dom";
 
 import Window from "./components/Window";
+import SpreadWindows from "./components/SpreadWindows";
 import Layout from "./components/Layout";
 import { useAppStore } from "./store";
 
 function AppWithKeyboardShortcuts() {
   const navigate = useNavigate();
-  const { activeTab, routes } = useAppStore();
+  const { activeTab, routes, windowLayout } = useAppStore();
 
   // Pre-create all route views in the background on startup so that
   // page-title-updated fires for every tab immediately, enabling unread
@@ -17,9 +18,13 @@ function AppWithKeyboardShortcuts() {
     routes.forEach((route) => {
       window.electronAPI.invoke("create-route-view", { route });
     });
-  }, []);
+  }, [routes]);
 
   useEffect(() => {
+    if (windowLayout === "spread" || windowLayout === "matrix") {
+      return;
+    }
+
     const hasMatchingRoute = routes.some(
       (route) => route.path === window.location.pathname,
     );
@@ -40,7 +45,15 @@ function AppWithKeyboardShortcuts() {
     if (firstRoute) {
       navigate(firstRoute.path, { replace: true });
     }
-  }, [activeTab, navigate, routes]);
+  }, [activeTab, navigate, routes, windowLayout]);
+
+  if (windowLayout === "spread" || windowLayout === "matrix") {
+    return (
+      <Layout>
+        <SpreadWindows />
+      </Layout>
+    );
+  }
 
   return (
     <Layout>

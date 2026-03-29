@@ -8,10 +8,12 @@ interface AppState {
   unreadCounts: Record<string, number>;
   routes: Array<Route>;
   activeDrawer: "create" | "manage" | null;
+  windowLayout: "single" | "spread" | "matrix";
   toggleSidebar: () => void;
   setActiveTab: (tabId: string | null) => void;
   updateUnreadCount: (tabId: string, count: number) => void;
   setActiveDrawer: (drawer: "create" | "manage" | null) => void;
+  setWindowLayout: (layout: "single" | "spread" | "matrix") => void;
   addRoute: (route: Route) => void;
   removeRoute: (routeId: string) => void;
   updateRoutesOrder: (routes: Array<Route>) => void;
@@ -25,6 +27,7 @@ export const useAppStore = create<AppState>()(
       unreadCounts: {},
       routes: [] as Array<Route>,
       activeDrawer: null as "create" | "manage" | null,
+      windowLayout: "single" as "single" | "spread" | "matrix",
 
       // Actions
       toggleSidebar: () =>
@@ -35,6 +38,7 @@ export const useAppStore = create<AppState>()(
           unreadCounts: { ...state.unreadCounts, [tabId]: count },
         })),
       setActiveDrawer: (activeDrawer) => set({ activeDrawer }),
+      setWindowLayout: (windowLayout) => set({ windowLayout }),
       addRoute: (route) =>
         set((state) => ({
           routes: [...state.routes, route],

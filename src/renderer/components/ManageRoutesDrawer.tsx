@@ -12,7 +12,14 @@ type ManageRoutesDrawerProps = {
 
 const ManageRoutesDrawer = ({ closeDrawer }: ManageRoutesDrawerProps) => {
   const navigate = useNavigate();
-  const { routes, activeTab, removeRoute, setActiveTab } = useAppStore();
+  const {
+    routes,
+    activeTab,
+    removeRoute,
+    setActiveTab,
+    windowLayout,
+    setWindowLayout,
+  } = useAppStore();
 
   const handleDeleteRoute = async (routeId: string) => {
     const route = routes.find((item) => item.id === routeId);
@@ -130,6 +137,44 @@ const ManageRoutesDrawer = ({ closeDrawer }: ManageRoutesDrawerProps) => {
                       </div>
                     </div>
                   ))
+                )}
+                {routes.length > 0 && (
+                  <div className="mt-2 flex items-center justify-between gap-3 rounded-md border p-3">
+                    <div className="flex flex-col">
+                      <Label>Window layout</Label>
+                      <Description>
+                        Spread all routes evenly in a single window.
+                      </Description>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant={
+                          windowLayout === "spread" ? "primary" : "secondary"
+                        }
+                        onClick={() =>
+                          setWindowLayout(
+                            windowLayout === "spread" ? "single" : "spread",
+                          )
+                        }
+                      >
+                        Columns
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={
+                          windowLayout === "matrix" ? "primary" : "secondary"
+                        }
+                        onClick={() =>
+                          setWindowLayout(
+                            windowLayout === "matrix" ? "single" : "matrix",
+                          )
+                        }
+                      >
+                        Matrix
+                      </Button>
+                    </div>
+                  </div>
                 )}
                 <div className="mt-2 flex justify-end">
                   <Button type="button" onClick={closeDrawer}>

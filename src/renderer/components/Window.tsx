@@ -50,8 +50,8 @@ const Window = ({ route }: WindowProps) => {
     window.electronAPI.invoke("update-view-bounds", {
       route,
       bounds: {
-        x: SIDEMENU_WIDTH + (activeDrawer ? DRAWER_WIDTH : 0),
-        y: 0,
+        x: Math.round(rect.left) + (activeDrawer ? DRAWER_WIDTH : 0),
+        y: Math.round(rect.top),
         width: Math.max(
           200,
           Math.round(rect.width) - (activeDrawer ? DRAWER_WIDTH : 0),
