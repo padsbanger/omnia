@@ -2,10 +2,20 @@ import type { ForgeConfig } from "@electron-forge/shared-types";
 import { MakerSquirrel } from "@electron-forge/maker-squirrel";
 import { MakerZIP } from "@electron-forge/maker-zip";
 import MakerPacman from "@osmn-byhn/electron-make-pacman";
+import { spawnSync } from 'node:child_process';
 
 import { VitePlugin } from "@electron-forge/plugin-vite";
 import { FusesPlugin } from "@electron-forge/plugin-fuses";
 import { FuseV1Options, FuseVersion } from "@electron/fuses";
+
+const hasMakepkg = () => {
+  const result = spawnSync('makepkg', ['--version'], { stdio: 'ignore' });
+  return !result.error && result.status === 0;
+};
+
+const shouldBuildPacman =
+  process.env.OMNIA_BUILD_PACMAN === 'true' ||
+  (process.env.OMNIA_BUILD_PACMAN !== 'false' && hasMakepkg());
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -28,14 +38,18 @@ const config: ForgeConfig = {
     new MakerZIP({}, ['darwin']),
     new MakerZIP({}, ['linux']),
 
-    // Arch Linux native package (great for Omarchy)
-    new MakerPacman({
-      options: {
-        depends: ['gtk3', 'nss', 'libxss', 'libxtst', 'alsa-lib'],
-        desktopCategories: ['Utility', 'Development'],
-        // icon: "/absolute/path/to/your/icon.png",   // optional but recommended
-      },
-    }),
+    // Arch Linux native package (requires makepkg)
+    ...(shouldBuildPacman
+      ? [
+          new MakerPacman({
+            options: {
+              depends: ['gtk3', 'nss', 'libxss', 'libxtst', 'alsa-lib'],
+              desktopCategories: ['Utility', 'Development'],
+              // icon: "/absolute/path/to/your/icon.png",   // optional but recommended
+            },
+          }),
+        ]
+      : []),
   ],
 
   publishers: [
