@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Omnia — Your Unified Desktop Workspace</title>
+  <meta name="description" content="Omnia is a desktop workspace organizer that unifies all your web apps into a single window. Boost productivity and simplify multitasking." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #09090b;
+      --bg-card: #18181b;
+      --bg-card-hover: #1f1f23;
+      --border: #27272a;
+      --text: #fafafa;
+      --text-muted: #a1a1aa;
+      --accent: #7c3aed;
+      --accent-light: #a78bfa;
+      --accent-glow: rgba(124, 58, 237, 0.35);
+      --gradient-1: #7c3aed;
+      --gradient-2: #2563eb;
+      --gradient-3: #06b6d4;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    /* ─── Navbar ─── */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 1rem 2rem;
+      backdrop-filter: blur(20px);
+      background: rgba(9, 9, 11, 0.8);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .navbar-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--gradient-1), var(--gradient-3));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.02em;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--text);
+    }
+
+    .nav-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1.25rem;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+
+    .nav-cta:hover {
+      background: #6d28d9;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    /* ─── Hero ─── */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 8rem 2rem 4rem;
+      overflow: hidden;
+    }
+
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+    }
+
+    .hero-bg::before {
+      content: '';
+      position: absolute;
+      top: -40%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 900px;
+      height: 900px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      filter: blur(80px);
+      animation: pulse 6s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulse {
+      from { opacity: 0.5; transform: translateX(-50%) scale(1); }
+      to   { opacity: 0.8; transform: translateX(-50%) scale(1.1); }
+    }
+
+    .hero-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(124, 58, 237, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(124, 58, 237, 0.05) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, black 30%, transparent 100%);
+      -webkit-mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, black 30%, transparent 100%);
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      max-width: 800px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.375rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+      background: rgba(24, 24, 27, 0.6);
+      backdrop-filter: blur(8px);
+    }
+
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #22c55e;
+      animation: blink 2s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero h1 .gradient-text {
+      background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2), var(--gradient-3));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto 2.5rem;
+      line-height: 1.7;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.85rem 1.75rem;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.25s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2));
+      color: #fff;
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 8px 40px var(--accent-glow);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-card-hover);
+      border-color: #3f3f46;
+      transform: translateY(-2px);
+    }
+
+    .btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* ─── App Preview ─── */
+    .preview-section {
+      position: relative;
+      padding: 0 2rem 6rem;
+      display: flex;
+      justify-content: center;
+    }
+
+    .preview-window {
+      position: relative;
+      max-width: 960px;
+      width: 100%;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      overflow: hidden;
+      box-shadow:
+        0 25px 50px -12px rgba(0, 0, 0, 0.5),
+        0 0 80px var(--accent-glow);
+    }
+
+    .preview-titlebar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 18px;
+      background: #111113;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .preview-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .preview-dot.red { background: #ff5f57; }
+    .preview-dot.yellow { background: #ffbd2e; }
+    .preview-dot.green { background: #28c840; }
+
+    .preview-body {
+      display: flex;
+      min-height: 420px;
+    }
+
+    .preview-sidebar {
+      width: 64px;
+      background: #111113;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 0;
+      gap: 12px;
+    }
+
+    .sidebar-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .sidebar-icon:hover,
+    .sidebar-icon.active {
+      background: var(--accent);
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    .sidebar-icon:not(.active) {
+      background: #27272a;
+    }
+
+    .preview-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      gap: 16px;
+    }
+
+    .preview-tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .preview-tab {
+      padding: 6px 16px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: transparent;
+      border: 1px solid transparent;
+    }
+
+    .preview-tab.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: transparent;
+    }
+
+    .preview-tab:not(.active) {
+      border-color: var(--border);
+    }
+
+    .preview-placeholder {
+      flex: 1;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      color: var(--text-muted);
+      letter-spacing: 0.02em;
+    }
+
+    /* ─── Features ─── */
+    .features {
+      padding: 6rem 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      text-align: center;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--accent-light);
+      margin-bottom: 0.75rem;
+    }
+
+    .section-title {
+      text-align: center;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+    }
+
+    .section-subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      max-width: 560px;
+      margin: 0 auto 4rem;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .feature-card {
+      padding: 2rem;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--bg-card);
+      transition: all 0.3s;
+    }
+
+    .feature-card:hover {
+      border-color: #3f3f46;
+      background: var(--bg-card-hover);
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      margin-bottom: 1.25rem;
+      background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2));
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+
+    .feature-card h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .feature-card p {
+      color: var(--text-muted);
+      font-size: 0.925rem;
+      line-height: 1.6;
+    }
+
+    /* ─── Platforms ─── */
+    .platforms {
+      padding: 6rem 2rem;
+      text-align: center;
+    }
+
+    .platforms-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .platform-cards {
+      display: flex;
+      gap: 1.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .platform-card {
+      padding: 2.5rem 3rem;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--bg-card);
+      min-width: 200px;
+      transition: all 0.3s;
+    }
+
+    .platform-card:hover {
+      border-color: #3f3f46;
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .platform-card svg {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 1rem;
+      color: var(--text-muted);
+    }
+
+    .platform-card h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .platform-card p {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    /* ─── Tech Stack ─── */
+    .tech {
+      padding: 6rem 2rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .tech-list {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .tech-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: var(--bg-card);
+      transition: all 0.2s;
+    }
+
+    .tech-pill:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    /* ─── CTA ─── */
+    .cta {
+      padding: 8rem 2rem;
+      text-align: center;
+      position: relative;
+    }
+
+    .cta::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 700px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      filter: blur(100px);
+      pointer-events: none;
+    }
+
+    .cta-inner {
+      position: relative;
+      z-index: 1;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .cta h2 {
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+    }
+
+    .cta p {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .cta-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    /* ─── Footer ─── */
+    .footer {
+      padding: 3rem 2rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .footer p {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover {
+      color: var(--text);
+    }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .features-grid { grid-template-columns: 1fr; }
+      .preview-sidebar { display: none; }
+      .preview-body { min-height: 300px; }
+      .footer-inner { justify-content: center; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="#" class="logo">Omnia</a>
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#platforms">Platforms</a></li>
+        <li><a href="#tech">Tech Stack</a></li>
+      </ul>
+      <a href="https://github.com/padsbanger/omnia/releases" class="nav-cta">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+        Download
+      </a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-bg">
+      <div class="hero-grid"></div>
+    </div>
+    <div class="hero-content">
+      <div class="badge">
+        <span class="badge-dot"></span>
+        v0.3.0 — Open Source &amp; Free
+      </div>
+      <h1>
+        All Your Apps.<br />
+        <span class="gradient-text">One Desktop.</span>
+      </h1>
+      <p>
+        Omnia is a desktop workspace organizer that unifies your messaging, email, and productivity tools into a single, streamlined window.
+      </p>
+      <div class="hero-actions">
+        <a href="https://github.com/padsbanger/omnia/releases" class="btn btn-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+          Download for Free
+        </a>
+        <a href="https://github.com/padsbanger/omnia" class="btn btn-secondary">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          View on GitHub
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- App Preview Mockup -->
+  <section class="preview-section">
+    <div class="preview-window">
+      <div class="preview-titlebar">
+        <span class="preview-dot red"></span>
+        <span class="preview-dot yellow"></span>
+        <span class="preview-dot green"></span>
+      </div>
+      <div class="preview-body">
+        <div class="preview-sidebar">
+          <div class="sidebar-icon active">💬</div>
+          <div class="sidebar-icon">📧</div>
+          <div class="sidebar-icon">📋</div>
+          <div class="sidebar-icon">📅</div>
+          <div class="sidebar-icon">🎵</div>
+          <div class="sidebar-icon">⚙️</div>
+        </div>
+        <div class="preview-content">
+          <div class="preview-tabs">
+            <span class="preview-tab active">Slack</span>
+            <span class="preview-tab">Gmail</span>
+            <span class="preview-tab">Notion</span>
+            <span class="preview-tab">Calendar</span>
+            <span class="preview-tab">Spotify</span>
+          </div>
+          <div class="preview-placeholder">
+            Your favourite web apps — all in one place
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features" id="features">
+    <p class="section-label">Features</p>
+    <h2 class="section-title">Everything you need to stay focused</h2>
+    <p class="section-subtitle">Stop juggling browser tabs. Omnia keeps all your tools organized and a single shortcut away.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🧩</div>
+        <h3>Unified Workspace</h3>
+        <p>Bring messaging, email, project management, and any web app together in one window with a clean sidebar for instant switching.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>Lightning Fast</h3>
+        <p>Built on Electron with Vite-powered hot reloading and optimized performance, so your apps launch instantly.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>Secure by Default</h3>
+        <p>Context isolation, controlled Node integration, and Electron Fuses ensure your data stays protected.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🖥️</div>
+        <h3>Cross-Platform</h3>
+        <p>Works natively on Windows, macOS, and Linux with platform-specific installers and auto-updates.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎨</div>
+        <h3>Clean & Minimal</h3>
+        <p>A distraction-free interface built with React and Tailwind CSS, designed to keep you in the flow.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🛠️</div>
+        <h3>Open Source</h3>
+        <p>MIT licensed. Inspect the code, contribute features, or fork it to build your own custom workspace.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Platforms -->
+  <section class="platforms" id="platforms">
+    <div class="platforms-inner">
+      <p class="section-label">Platforms</p>
+      <h2 class="section-title">Runs where you do</h2>
+      <p class="section-subtitle">Native installers for every major operating system.</p>
+      <div class="platform-cards">
+        <div class="platform-card">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
+          <h3>Windows</h3>
+          <p>.exe &amp; portable</p>
+        </div>
+        <div class="platform-card">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+          <h3>macOS</h3>
+          <p>.dmg &amp; .zip</p>
+        </div>
+        <div class="platform-card">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12.504 0c-.155 0-.315.008-.48.021-4.226.333-3.105 4.807-3.17 6.298-.076 1.092-.3 1.953-1.05 3.02-.885 1.051-2.127 2.75-2.716 4.521-.278.832-.41 1.684-.287 2.489a.424.424 0 00-.11.135c-.26.268-.45.6-.663.839-.199.199-.485.267-.797.4-.313.136-.658.269-.864.68-.09.189-.136.394-.132.602 0 .199.027.4.055.536.058.399.116.728.04.97-.249.68-.28 1.145-.106 1.484.174.334.535.47.94.601.81.2 1.91.135 2.774.6.926.466 1.866.67 2.616.47.526-.116.97-.464 1.208-.946.587-.003 1.23-.269 2.26-.334.699-.058 1.574.267 2.577.2.025.134.063.198.114.333l.003.003c.391.778 1.113 1.368 1.884 1.43.199.008.395-.024.676-.04.282-.09.548-.2.852-.284.32-.09.628-.14.855-.114.9.1 1.83-.156 2.47-.72.29-.264.544-.485.81-.636.165-.074.48-.166.735-.259.531-.186.943-.412 1.243-.846.14-.165.198-.323.283-.497.06-.135.12-.27.193-.402l.113-.234c.246-.581.06-1.347-.363-2.173-.297-.579-.717-1.234-1.182-1.655-.27-.244-.512-.467-.777-.6-.097-.03-.19-.099-.177-.184.3-1.753.065-3.635-.608-5.192-.576-1.332-1.553-2.63-3.31-3.587-.775-.465-1.647-.74-2.648-.826-.319-.031-.637-.04-.952-.036zm0 .951c.289-.003.575.007.867.035.93.07 1.725.32 2.42.74 1.599.87 2.477 2.044 3.004 3.265.607 1.42.814 3.152.543 4.768l-.002.024c-.025.151.063.306.176.403.354.308.686.67 1.036 1.18.35.507.66 1.175.79 1.653.214.752.16 1.088-.06 1.488l-.108.228c-.084.146-.147.296-.215.45-.073.149-.117.279-.2.375-.215.315-.513.483-1.012.659-.253.087-.541.17-.765.27-.376.2-.693.456-1.032.765-.465.41-1.167.58-1.82.508-.323-.04-.737.02-1.126.129-.313.088-.594.186-.87.275-.225.014-.373.034-.501.029-.54-.04-1.065-.457-1.337-1.02l-.008-.018c-.098-.21-.271-.4-.498-.393-.354.006-1.086.327-2.103.394-.94.06-1.552-.24-2.376-.578-1.05-.55-2.347-.413-3.082-.597-.284-.088-.416-.152-.498-.31-.082-.156-.12-.457.115-1.06l.01-.028c.06-.187.075-.396.05-.616-.03-.179-.047-.345-.05-.494-.002-.143.028-.254.089-.382.121-.246.314-.32.6-.444.365-.16.756-.28 1.063-.587.27-.281.468-.59.708-.848l.011-.013a.425.425 0 00.108-.247c.003-.027 0-.05-.004-.071-.089-.694.017-1.449.26-2.178.545-1.633 1.706-3.235 2.505-4.183.832-1.18 1.124-2.18 1.207-3.403.063-1.232-.223-3.57 1.107-4.866.459-.431 1-.6 1.67-.65.148-.011.3-.017.453-.018zM7.691 14.947c-.011 0-.019.004-.029.01l-.003.002-.004.005-.003.008v.018l.003.007.005.006.007.003h.017l.007-.004.005-.006.003-.008v-.016l-.005-.007-.004-.004-.008-.003h-.01z"/></svg>
+          <h3>Linux</h3>
+          <p>.deb, .rpm &amp; AUR</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tech Stack -->
+  <section class="tech" id="tech">
+    <p class="section-label">Built With</p>
+    <h2 class="section-title">Modern tech, proven tools</h2>
+    <p class="section-subtitle">A solid foundation using battle-tested open-source technologies.</p>
+    <div class="tech-list">
+      <span class="tech-pill">⚛️ React 19</span>
+      <span class="tech-pill">🔌 Electron 41</span>
+      <span class="tech-pill">⚡ Vite 5</span>
+      <span class="tech-pill">🎨 Tailwind CSS 4</span>
+      <span class="tech-pill">📘 TypeScript</span>
+      <span class="tech-pill">🧸 Zustand</span>
+      <span class="tech-pill">🧭 React Router 7</span>
+      <span class="tech-pill">🛡️ Electron Forge</span>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <div class="cta-inner">
+      <h2>Ready to simplify<br />your workflow?</h2>
+      <p>Download Omnia for free and bring all your apps together in one clean, focused window.</p>
+      <div class="cta-actions">
+        <a href="https://github.com/padsbanger/omnia/releases" class="btn btn-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+          Download Now
+        </a>
+        <a href="https://github.com/padsbanger/omnia" class="btn btn-secondary">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          Star on GitHub
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <p>&copy; 2025 Omnia — Built by <a href="mailto:kontakt@michal-lach.pl" style="color:var(--accent-light)">Michał Lach</a></p>
+      <div class="footer-links">
+        <a href="https://github.com/padsbanger/omnia">GitHub</a>
+        <a href="https://github.com/padsbanger/omnia/releases">Releases</a>
+        <a href="https://github.com/padsbanger/omnia/blob/main/LICENSE">MIT License</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
