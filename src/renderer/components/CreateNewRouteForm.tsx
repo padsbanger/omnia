@@ -14,22 +14,42 @@ type RouteNavigationConfig = {
 };
 
 type ApplicationKey =
-  | "gmail"
-  | "discord"
-  | "facebook"
-  | "tradingview"
-  | "twitter";
+  | 'gmail'
+  | 'discord'
+  | 'facebook'
+  | 'tradingview'
+  | 'twitter'
+  | 'spotify';
 
 const APPLICATION_DEFAULTS: Record<
   ApplicationKey,
   { label: string; url: string }
 > = {
-  gmail: { label: "Gmail", url: "https://mail.google.com" },
-  discord: { label: "Discord", url: "https://discord.com/channels/@me" },
-  facebook: { label: "Messenger", url: "https://facebook.com/messages" },
-  tradingview: { label: "TradingView", url: "https://www.tradingview.com" },
-  twitter: { label: "Twitter", url: "https://twitter.com/home" },
+  gmail: { label: 'Gmail', url: 'https://mail.google.com' },
+  discord: { label: 'Discord', url: 'https://discord.com/channels/@me' },
+  facebook: { label: 'Messenger', url: 'https://facebook.com/messages' },
+  tradingview: { label: 'TradingView', url: 'https://www.tradingview.com' },
+  twitter: { label: 'Twitter', url: 'https://twitter.com/home' },
+  spotify: { label: 'Spotify', url: 'https://open.spotify.com/home' },
 };
+
+const GOOGLE_HOSTS = [
+  'mail.google.com',
+  'accounts.google.com',
+  'google.com',
+  'googleapis.com',
+  'googleusercontent.com',
+  'gstatic.com',
+];
+
+const FACEBOOK_HOSTS = [
+  'facebook.com',
+  'messenger.com',
+  'fbcdn.net',
+  'fbsbx.com',
+];
+
+const TWITTER_HOSTS = ['twitter.com', 'x.com', 't.co', 'twimg.com'];
 
 const buildRouteId = (label: string) =>
   `${label
@@ -45,81 +65,71 @@ const getRouteNavigationConfig = (
   const lowerHost = hostname.toLowerCase();
 
   const isGoogleHost =
-    lowerHost.endsWith("google.com") ||
-    lowerHost.endsWith("gmail.com") ||
-    lowerHost.endsWith("googleusercontent.com") ||
-    lowerHost.endsWith("gstatic.com");
+    lowerHost.endsWith('google.com') ||
+    lowerHost.endsWith('gmail.com') ||
+    lowerHost.endsWith('googleusercontent.com') ||
+    lowerHost.endsWith('gstatic.com');
 
-  if (icon === "gmail" || isGoogleHost) {
+  if (icon === 'gmail' || isGoogleHost) {
     return {
-      internalHosts: [
-        "mail.google.com",
-        "accounts.google.com",
-        "google.com",
-        "googleapis.com",
-        "googleusercontent.com",
-        "gstatic.com",
-      ],
+      internalHosts: GOOGLE_HOSTS,
       openExternalLinksInBrowser: true,
     };
   }
 
-  if (icon === "discord" || lowerHost.endsWith("discord.com")) {
+  if (icon === 'discord' || lowerHost.endsWith('discord.com')) {
     return {
-      internalHosts: ["discord.com", "discordapp.com"],
+      internalHosts: ['discord.com', 'discordapp.com'],
       openExternalLinksInBrowser: true,
     };
   }
 
   if (
-    icon === "facebook" ||
-    lowerHost.endsWith("facebook.com") ||
-    lowerHost.endsWith("messenger.com")
+    icon === 'facebook' ||
+    lowerHost.endsWith('facebook.com') ||
+    lowerHost.endsWith('messenger.com')
   ) {
     return {
-      internalHosts: [
-        "facebook.com",
-        "messenger.com",
-        "fbcdn.net",
-        "fbsbx.com",
-      ],
+      internalHosts: FACEBOOK_HOSTS,
       openExternalLinksInBrowser: true,
     };
   }
 
-  if (icon === "tradingview" || lowerHost.endsWith("tradingview.com")) {
+  if (icon === 'tradingview' || lowerHost.endsWith('tradingview.com')) {
     return {
       internalHosts: [
-        "tradingview.com",
-        "sso.tradingview.com",
-        "mail.google.com",
-        "accounts.google.com",
-        "google.com",
-        "googleapis.com",
-        "googleusercontent.com",
-        "gstatic.com",
+        'tradingview.com',
+        'sso.tradingview.com',
+        ...FACEBOOK_HOSTS,
+        ...TWITTER_HOSTS,
+        ...GOOGLE_HOSTS,
       ],
       openExternalLinksInBrowser: true,
     };
   }
 
   if (
-    icon === "twitter" ||
-    lowerHost.endsWith("twitter.com") ||
-    lowerHost.endsWith("x.com")
+    icon === 'twitter' ||
+    lowerHost.endsWith('twitter.com') ||
+    lowerHost.endsWith('x.com')
   ) {
     return {
+      internalHosts: [...TWITTER_HOSTS, ...GOOGLE_HOSTS],
+      openExternalLinksInBrowser: true,
+    };
+  }
+
+  // Added Spotify logic
+  if (icon === 'spotify' || lowerHost.endsWith('spotify.com')) {
+    return {
       internalHosts: [
-        "twitter.com",
-        "x.com",
-        "t.co",
-        "twimg.com",
-        "mail.google.com",
-        "accounts.google.com",
-        "google.com",
-        "googleapis.com",
-        "googleusercontent.com",
-        "gstatic.com",
+        'open.spotify.com',
+        'spotify.com',
+        'spotifycdn.com',
+        'spotifyads.com',
+        ...FACEBOOK_HOSTS,
+        ...TWITTER_HOSTS,
+        ...GOOGLE_HOSTS,
       ],
       openExternalLinksInBrowser: true,
     };
@@ -129,7 +139,7 @@ const getRouteNavigationConfig = (
     internalHosts: [hostname],
     openExternalLinksInBrowser: true,
   };
-};
+};;;;
 
 const CreateNewRouteForm = ({ closeDrawer }: CreateNewRouteFormProps) => {
   const navigate = useNavigate();
@@ -242,6 +252,7 @@ const CreateNewRouteForm = ({ closeDrawer }: CreateNewRouteFormProps) => {
                     <option value="facebook">Facebook</option>
                     <option value="twitter">Twitter</option>
                     <option value="tradingview">TradingView</option>
+                    <option value="spotify">Spotify</option>
                   </select>
                 </label>
                 <label className="text-sm flex flex-col gap-1">

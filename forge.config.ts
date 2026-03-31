@@ -10,21 +10,29 @@ import { FuseV1Options, FuseVersion } from "@electron/fuses";
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
+    // Castlabs' Widevine builds are published outside electron/electron releases.
+    // Point packager downloads to the castlabs release mirror.
+    download: {
+      mirrorOptions: {
+        mirror:
+          'https://github.com/castlabs/electron-releases/releases/download/',
+      },
+    },
   },
   rebuildConfig: {},
 
   makers: [
     // Windows
-    new MakerSquirrel({}),
+    new MakerSquirrel({}, ['win32']),
     // Universal ZIP (safe fallback)
-    new MakerZIP({}, ["darwin"]),
-    new MakerZIP({}, ["linux"]),
+    new MakerZIP({}, ['darwin']),
+    new MakerZIP({}, ['linux']),
 
     // Arch Linux native package (great for Omarchy)
     new MakerPacman({
       options: {
-        depends: ["gtk3", "nss", "libxss", "libxtst", "alsa-lib"],
-        desktopCategories: ["Utility", "Development"],
+        depends: ['gtk3', 'nss', 'libxss', 'libxtst', 'alsa-lib'],
+        desktopCategories: ['Utility', 'Development'],
         // icon: "/absolute/path/to/your/icon.png",   // optional but recommended
       },
     }),
@@ -32,11 +40,11 @@ const config: ForgeConfig = {
 
   publishers: [
     {
-      name: "@electron-forge/publisher-github",
+      name: '@electron-forge/publisher-github',
       config: {
         repository: {
-          owner: "padsbanger",
-          name: "omnia",
+          owner: 'padsbanger',
+          name: 'omnia',
         },
         prerelease: false,
         draft: false,
@@ -48,20 +56,20 @@ const config: ForgeConfig = {
     new VitePlugin({
       build: [
         {
-          entry: "src/main.ts",
-          config: "vite.main.config.ts",
-          target: "main",
+          entry: 'src/main.ts',
+          config: 'vite.main.config.ts',
+          target: 'main',
         },
         {
-          entry: "src/preload.ts",
-          config: "vite.preload.config.ts",
-          target: "preload",
+          entry: 'src/preload.ts',
+          config: 'vite.preload.config.ts',
+          target: 'preload',
         },
       ],
       renderer: [
         {
-          name: "main_window",
-          config: "vite.renderer.config.ts",
+          name: 'main_window',
+          config: 'vite.renderer.config.ts',
         },
       ],
     }),

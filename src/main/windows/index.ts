@@ -1,36 +1,36 @@
-import { app, BrowserWindow, session, shell, WebContentsView } from "electron";
-import path from "node:path";
-import { Route } from "../../common/routes";
-import extractUnreadFromTitle from "../../common/utils/extractUnreadFromTitle";
+import { app, BrowserWindow, session, shell, WebContentsView } from 'electron';
+import path from 'node:path';
+import { Route } from '../../common/routes';
+import extractUnreadFromTitle from '../../common/utils/extractUnreadFromTitle';
 
 import {
   getExternalUrlTarget,
   default as isExternalUrl,
-} from "../../common/utils/isExternalUrl";
-import { registerIpcHandlers } from "../ipc";
+} from '../../common/utils/isExternalUrl';
+import { registerIpcHandlers } from '../ipc';
 
 const GOOGLE_OAUTH_HOSTS = [
-  "mail.google.com",
-  "accounts.google.com",
-  "google.com",
-  "googleapis.com",
-  "googleusercontent.com",
-  "gstatic.com",
+  'mail.google.com',
+  'accounts.google.com',
+  'google.com',
+  'googleapis.com',
+  'googleusercontent.com',
+  'gstatic.com',
 ];
 
-const TWITTER_HOSTS = ["twitter.com", "x.com", "t.co", "twimg.com"];
-const GOOGLE_OAUTH_POPUP_ICONS = new Set(["twitter", "tradingview"]);
+const TWITTER_HOSTS = ['twitter.com', 'x.com', 't.co', 'twimg.com'];
+const GOOGLE_OAUTH_POPUP_ICONS = new Set(['twitter', 'tradingview']);
 
 const getInternalHostsForRoute = (route: Route): string[] => {
   const baseHosts = route.internalHosts ?? [new URL(route.loadURL).hostname];
   const mergedHosts = new Set(baseHosts.map((host) => host.toLowerCase()));
 
-  if (route.icon === "twitter") {
+  if (route.icon === 'twitter') {
     TWITTER_HOSTS.forEach((host) => mergedHosts.add(host));
     GOOGLE_OAUTH_HOSTS.forEach((host) => mergedHosts.add(host));
   }
 
-  if (route.icon === "tradingview") {
+  if (route.icon === 'tradingview') {
     GOOGLE_OAUTH_HOSTS.forEach((host) => mergedHosts.add(host));
   }
 
@@ -43,17 +43,17 @@ const isGoogleOAuthPopupUrl = (url: string): boolean => {
     const hostname = parsed.hostname.toLowerCase();
 
     if (
-      !hostname.endsWith("google.com") &&
-      !hostname.endsWith("googleapis.com") &&
-      !hostname.endsWith("googleusercontent.com")
+      !hostname.endsWith('google.com') &&
+      !hostname.endsWith('googleapis.com') &&
+      !hostname.endsWith('googleusercontent.com')
     ) {
       return false;
     }
 
     return (
-      parsed.pathname.includes("/o/oauth2/") ||
-      parsed.pathname.includes("/gsi/") ||
-      parsed.pathname.includes("RotateCookiesPage")
+      parsed.pathname.includes('/o/oauth2/') ||
+      parsed.pathname.includes('/gsi/') ||
+      parsed.pathname.includes('RotateCookiesPage')
     );
   } catch {
     return false;
@@ -62,6 +62,9 @@ const isGoogleOAuthPopupUrl = (url: string): boolean => {
 
 const createWindow = () => {
   let mainWindow: BrowserWindow | null = null;
+  // Add this near your unreadCounts declaration
+  const audioStates: Map<string, { isPlaying: boolean; mediaType?: string }> =
+    new Map();
 
   mainWindow = new BrowserWindow({
     width: 800,
@@ -69,11 +72,11 @@ const createWindow = () => {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, "preload.js"),
+      preload: path.join(__dirname, 'preload.js'),
     },
   });
 
-  const views = new Map<string, WebContentsView>(); // tabId → view
+  const views = new Map<string, WebContentsView>();
   const runtimeRoutes: Route[] = [];
   const unreadCounts: Array<{ routeId: string; count: number }> = [];
 
@@ -90,57 +93,98 @@ const createWindow = () => {
     const ses = session.fromPartition(partition);
     const internalHosts = getInternalHostsForRoute(route);
 
+    ses.setPermissionRequestHandler((webContents, permission, callback) => {
+      const allowed = [
+        'media',
+        'audioCapture',
+        'videoCapture',
+        'notifications',
+      ];
+      callback(allowed.includes(permission));
+    });
+
     const view = new WebContentsView({
       webPreferences: {
         session: ses,
         nodeIntegration: false,
         contextIsolation: true,
+        autoplayPolicy: 'no-user-gesture-required',
+        backgroundThrottling: false,
+        plugins: true,
       },
     });
 
     view.webContents.setUserAgent(
-      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
     );
 
-    view.webContents.on("page-title-updated", (e, title) => {
-      console.log("Page title updated for", route.id, ":", title);
+    const webContents = view.webContents;
+
+    // Media debugging
+    webContents.on('media-started-playing', () => {
+      const isPlaying = true;
+      const existing = audioStates.get(route.id);
+      if (existing) {
+        existing.isPlaying = true;
+        // Optionally track media type if available
+      } else {
+        audioStates.set(route.id, { isPlaying: true });
+      }
+
+      console.log(`🎵 Media started playing in route: ${route.id}`);
+    });
+
+    webContents.on('media-started-playing', () => {
+      const isPlaying = true;
+      const existing = audioStates.get(route.id);
+      if (existing) existing.isPlaying = true;
+      else audioStates.set(route.id, { isPlaying: true });
+
+      mainWindow?.webContents.send('audio-state-change', {
+        routeId: route.id,
+        isPlaying: true,
+      });
+    });
+
+    webContents.on('media-ended', () => {
+      const existing = audioStates.get(route.id);
+      if (existing) {
+        existing.isPlaying = false;
+        mainWindow?.webContents.send('audio-state-change', {
+          routeId: route.id,
+          isPlaying: false,
+        });
+      }
+    });
+
+    webContents.on('page-title-updated', (e: any, title: string) => {
       const unread = extractUnreadFromTitle(title);
-      console.log("Extracted unread count:", unread);
 
       const existing = unreadCounts.find((u) => u.routeId === route.id);
-      if (existing) {
-        existing.count = unread;
-      } else {
-        unreadCounts.push({ routeId: route.id, count: unread });
-      }
+      if (existing) existing.count = unread;
+      else unreadCounts.push({ routeId: route.id, count: unread });
 
       const totalUnread = unreadCounts.reduce((a, b) => a + b.count, 0);
 
-      mainWindow?.webContents.send("global-unread-update", {
+      mainWindow?.webContents.send('global-unread-update', {
         unreadCounts,
         total: totalUnread,
       });
-      mainWindow?.webContents.send("unread-update", {
+      mainWindow?.webContents.send('unread-update', {
         routeId: route.id,
         count: unread,
       });
     });
 
-    const webContents = view.webContents;
-
     const openInExternalBrowser = (url: string) => {
       const externalTarget = getExternalUrlTarget(url, internalHosts) ?? url;
-
-      return shell.openExternal(externalTarget).catch((err) => {
-        console.error(`Failed to open external URL: ${externalTarget}`, err);
-      });
+      shell.openExternal(externalTarget).catch(console.error);
     };
 
-    const shouldOpenExternally = (url: string) => {
-      return isExternalUrl(url, internalHosts);
-    };
+    const shouldOpenExternally = (url: string) =>
+      isExternalUrl(url, internalHosts);
 
-    webContents.on("will-navigate", (event, url) => {
+    webContents.on('will-navigate', (event, url) => {
       if (shouldOpenExternally(url)) {
         event.preventDefault();
         void openInExternalBrowser(url);
@@ -150,7 +194,7 @@ const createWindow = () => {
     webContents.setWindowOpenHandler(({ url }) => {
       if (shouldOpenExternally(url)) {
         void openInExternalBrowser(url);
-        return { action: "deny" };
+        return { action: 'deny' };
       }
 
       if (
@@ -158,7 +202,7 @@ const createWindow = () => {
         isGoogleOAuthPopupUrl(url)
       ) {
         return {
-          action: "allow",
+          action: 'allow',
           overrideBrowserWindowOptions: {
             parent: mainWindow ?? undefined,
             modal: true,
@@ -174,12 +218,8 @@ const createWindow = () => {
         };
       }
 
-      // Internal URL (e.g. OAuth popup) — load in-place to avoid a floating
-      // BrowserWindow popup. The OAuth redirect will bring the user back.
-      webContents.loadURL(url).catch((err) => {
-        console.error(`Failed to load popup URL in-app: ${url}`, err);
-      });
-      return { action: "deny" };
+      webContents.loadURL(url).catch(console.error);
+      return { action: 'deny' };
     });
 
     views.set(route.id, view);
@@ -188,13 +228,14 @@ const createWindow = () => {
     return view;
   };
 
-  const removeRouteView = async (route: Route) => {
-    const view = views.get(route.id);
+  // ... (removeRouteView and registerIpcHandlers remain unchanged from your previous version)
 
+  const removeRouteView = async (route: Route) => {
+    // [your existing removeRouteView code here — unchanged]
+    const view = views.get(route.id);
     if (view) {
       mainWindow?.contentView.removeChildView(view);
       views.delete(route.id);
-
       if (!view.webContents.isDestroyed()) {
         view.webContents.close({ waitForBeforeUnload: false });
       }
@@ -203,16 +244,10 @@ const createWindow = () => {
     const unreadIndex = unreadCounts.findIndex(
       (item) => item.routeId === route.id,
     );
-    if (unreadIndex >= 0) {
-      unreadCounts.splice(unreadIndex, 1);
-    }
+    if (unreadIndex >= 0) unreadCounts.splice(unreadIndex, 1);
 
-    const routeIndex = runtimeRoutes.findIndex(
-      (existingRoute) => existingRoute.id === route.id,
-    );
-    if (routeIndex >= 0) {
-      runtimeRoutes.splice(routeIndex, 1);
-    }
+    const routeIndex = runtimeRoutes.findIndex((r) => r.id === route.id);
+    if (routeIndex >= 0) runtimeRoutes.splice(routeIndex, 1);
 
     try {
       await session.fromPartition(route.partition).clearStorageData();
@@ -224,7 +259,7 @@ const createWindow = () => {
       (total, item) => total + item.count,
       0,
     );
-    mainWindow?.webContents.send("global-unread-update", {
+    mainWindow?.webContents.send('global-unread-update', {
       unreadCounts,
       total: totalUnread,
     });
@@ -240,7 +275,7 @@ const createWindow = () => {
     removeRouteView,
   });
 
-  // Load main renderer
+  // Load main renderer (unchanged)
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
   } else {
@@ -249,13 +284,13 @@ const createWindow = () => {
     );
   }
 
-  mainWindow.on("resize", () => {
-    mainWindow?.webContents.send("main-window-resize", {
+  mainWindow.on('resize', () => {
+    mainWindow?.webContents.send('main-window-resize', {
       bounds: mainWindow.getBounds(),
     });
   });
 
-  if (process.env.ELECTRON_ENV === "development") {
+  if (process.env.ELECTRON_ENV === 'development') {
     mainWindow.webContents.openDevTools();
   }
 

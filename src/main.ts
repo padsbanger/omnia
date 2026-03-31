@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, components } from 'electron';
 import started from "electron-squirrel-startup";
 import createWindow from "./main/windows";
 
@@ -7,7 +7,16 @@ if (started) {
   app.quit();
 }
 
-app.on("ready", createWindow);
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
+app.commandLine.appendSwitch('disable-features', 'AudioServiceOutOfProcess');
+app.commandLine.appendSwitch('enable-features', 'HardwareMediaKeyHandling');
+
+app.whenReady().then(async () => {
+  await components.whenReady();
+  console.log('components ready:', components.status());
+  createWindow();
+});
+
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
