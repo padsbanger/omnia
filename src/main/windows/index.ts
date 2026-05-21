@@ -1,4 +1,10 @@
-import { app, BrowserWindow, screen, session, shell, WebContentsView } from 'electron';
+import {
+  BrowserWindow,
+  screen,
+  session,
+  shell,
+  WebContentsView,
+} from 'electron';
 import path from 'node:path';
 import { Route } from '../../common/routes';
 import extractUnreadFromTitle from '../../common/utils/extractUnreadFromTitle';
@@ -8,6 +14,8 @@ import {
   default as isExternalUrl,
 } from '../../common/utils/isExternalUrl';
 import { registerIpcHandlers } from '../ipc';
+import createSplashWindow from './splashWindow';
+import getAppIconPath from '../../common/utils/getAppIconPath';
 
 const GOOGLE_OAUTH_HOSTS = [
   'mail.google.com',
@@ -60,8 +68,11 @@ const isGoogleOAuthPopupUrl = (url: string): boolean => {
   }
 };
 
+
+
 const createWindow = () => {
   let mainWindow: BrowserWindow | null = null;
+  let splashWindow: BrowserWindow | null = createSplashWindow();
   // Add this near your unreadCounts declaration
   const audioStates: Map<string, { isPlaying: boolean; mediaType?: string }> =
     new Map();
@@ -70,7 +81,8 @@ const createWindow = () => {
   mainWindow = new BrowserWindow({
     width,
     height,
-    icon: path.join(app.getAppPath(), 'src', 'assets', 'icon-square.png'),
+    show: false,
+    icon: getAppIconPath(),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -287,7 +299,16 @@ const createWindow = () => {
   }
 
   mainWindow.once('ready-to-show', () => {
+    splashWindow?.close();
+    splashWindow = null;
+    mainWindow?.show();
     mainWindow?.maximize();
+  });
+
+  mainWindow.on('closed', () => {
+    splashWindow?.close();
+    splashWindow = null;
+    mainWindow = null;
   });
 
   mainWindow.on('resize', () => {
