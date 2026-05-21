@@ -3,6 +3,7 @@ import { MakerSquirrel } from "@electron-forge/maker-squirrel";
 import { MakerZIP } from "@electron-forge/maker-zip";
 import MakerPacman from "@osmn-byhn/electron-make-pacman";
 import { spawnSync } from 'node:child_process';
+import path from 'node:path';
 
 import { VitePlugin } from "@electron-forge/plugin-vite";
 import { FusesPlugin } from "@electron-forge/plugin-fuses";
@@ -20,6 +21,7 @@ const shouldBuildPacman =
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
+    icon: path.resolve(__dirname, 'src', 'assets', 'icon'),
     // Castlabs' Widevine builds are published outside electron/electron releases.
     // Point packager downloads to the castlabs release mirror.
     download: {
