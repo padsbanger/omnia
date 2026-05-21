@@ -1,4 +1,4 @@
-import { app, BrowserWindow, session, shell, WebContentsView } from 'electron';
+import { app, BrowserWindow, screen, session, shell, WebContentsView } from 'electron';
 import path from 'node:path';
 import { Route } from '../../common/routes';
 import extractUnreadFromTitle from '../../common/utils/extractUnreadFromTitle';
@@ -65,10 +65,12 @@ const createWindow = () => {
   // Add this near your unreadCounts declaration
   const audioStates: Map<string, { isPlaying: boolean; mediaType?: string }> =
     new Map();
+  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
 
   mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width,
+    height,
+    icon: path.join(app.getAppPath(), 'src', 'assets', 'icon-square.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -283,6 +285,10 @@ const createWindow = () => {
       path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
     );
   }
+
+  mainWindow.once('ready-to-show', () => {
+    mainWindow?.maximize();
+  });
 
   mainWindow.on('resize', () => {
     mainWindow?.webContents.send('main-window-resize', {
