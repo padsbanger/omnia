@@ -16,58 +16,10 @@ import {
 import { registerIpcHandlers } from '../ipc';
 import createSplashWindow from './splashWindow';
 import getAppIconPath from '../../common/utils/getAppIconPath';
+import getInternalHostsForRoute from '../../common/utils/getInternalHostsForRoute';
+import isGoogleOAuthPopupUrl from '../../common/utils/isGoogleOAuthPopupUrl';
 
-const GOOGLE_OAUTH_HOSTS = [
-  'mail.google.com',
-  'accounts.google.com',
-  'google.com',
-  'googleapis.com',
-  'googleusercontent.com',
-  'gstatic.com',
-];
-
-const TWITTER_HOSTS = ['twitter.com', 'x.com', 't.co', 'twimg.com'];
 const GOOGLE_OAUTH_POPUP_ICONS = new Set(['twitter', 'tradingview']);
-
-const getInternalHostsForRoute = (route: Route): string[] => {
-  const baseHosts = route.internalHosts ?? [new URL(route.loadURL).hostname];
-  const mergedHosts = new Set(baseHosts.map((host) => host.toLowerCase()));
-
-  if (route.icon === 'twitter') {
-    TWITTER_HOSTS.forEach((host) => mergedHosts.add(host));
-    GOOGLE_OAUTH_HOSTS.forEach((host) => mergedHosts.add(host));
-  }
-
-  if (route.icon === 'tradingview') {
-    GOOGLE_OAUTH_HOSTS.forEach((host) => mergedHosts.add(host));
-  }
-
-  return Array.from(mergedHosts);
-};
-
-const isGoogleOAuthPopupUrl = (url: string): boolean => {
-  try {
-    const parsed = new URL(url);
-    const hostname = parsed.hostname.toLowerCase();
-
-    if (
-      !hostname.endsWith('google.com') &&
-      !hostname.endsWith('googleapis.com') &&
-      !hostname.endsWith('googleusercontent.com')
-    ) {
-      return false;
-    }
-
-    return (
-      parsed.pathname.includes('/o/oauth2/') ||
-      parsed.pathname.includes('/gsi/') ||
-      parsed.pathname.includes('RotateCookiesPage')
-    );
-  } catch {
-    return false;
-  }
-};
-
 
 
 const createWindow = () => {

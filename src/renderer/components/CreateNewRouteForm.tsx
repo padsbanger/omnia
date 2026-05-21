@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Drawer, Button } from "@heroui/react";
 import { Route } from "../../common/routes";
 import { useAppStore } from "../store";
+import { GOOGLE_HOSTS, FACEBOOK_HOSTS, TWITTER_HOSTS } from "../../common/auth_hosts";
 
 type CreateNewRouteFormProps = {
   closeDrawer: () => void;
@@ -32,24 +33,6 @@ const APPLICATION_DEFAULTS: Record<
   twitter: { label: 'Twitter', url: 'https://twitter.com/home' },
   spotify: { label: 'Spotify', url: 'https://open.spotify.com/home' },
 };
-
-const GOOGLE_HOSTS = [
-  'mail.google.com',
-  'accounts.google.com',
-  'google.com',
-  'googleapis.com',
-  'googleusercontent.com',
-  'gstatic.com',
-];
-
-const FACEBOOK_HOSTS = [
-  'facebook.com',
-  'messenger.com',
-  'fbcdn.net',
-  'fbsbx.com',
-];
-
-const TWITTER_HOSTS = ['twitter.com', 'x.com', 't.co', 'twimg.com'];
 
 const buildRouteId = (label: string) =>
   `${label
