@@ -8,7 +8,7 @@ import {
   WebContentsView,
 } from 'electron';
 import path from 'node:path';
-import { Route } from '../../common/routes';
+import { Route, RouteMemoryUsage } from '../../common/routes';
 import extractUnreadFromTitle from '../../common/utils/extractUnreadFromTitle';
 
 import {
@@ -25,6 +25,7 @@ const GOOGLE_OAUTH_POPUP_ICONS = new Set(['twitter', 'tradingview']);
 const WEBAUTHN_DISABLED_ICONS = new Set(['gmail', 'twitter']);
 const DISABLED_WEBAUTHN_BLINK_FEATURES =
   'WebAuth,WebAuthenticationConditionalUI';
+const MEMORY_USAGE_POLL_INTERVAL_MS = 15000;
 
 type CreateWindowOptions = {
   startMinimized?: boolean;
@@ -107,6 +108,95 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
   const views = new Map<string, WebContentsView>();
   const runtimeRoutes: Route[] = [];
   const unreadCounts: Array<{ routeId: string; count: number }> = [];
+
+  const emitRouteMemoryUsage = (
+    routeId: string,
+    memoryUsage: RouteMemoryUsage | undefined,
+  ) => {
+    const route = runtimeRoutes.find((item) => item.id === routeId);
+    if (route) {
+      route.memoryUsage = memoryUsage;
+    }
+
+    mainWindow?.webContents.send('route-memory-usage-updated', {
+      routeId,
+      memoryUsage,
+    });
+  };
+
+  const getWebContentsProcessMemoryInfo = async (view: WebContentsView) => {
+    const webContentsWithOptionalMemoryApi = view.webContents as typeof view.webContents & {
+      getProcessMemoryInfo?: () => Promise<{
+        private: number;
+        shared: number;
+        residentSet?: number;
+      }>;
+    };
+
+    if (typeof webContentsWithOptionalMemoryApi.getProcessMemoryInfo === 'function') {
+      return webContentsWithOptionalMemoryApi.getProcessMemoryInfo();
+    }
+
+    const osProcessId = view.webContents.getOSProcessId();
+    if (!osProcessId) {
+      return null;
+    }
+
+    const processMetric = app
+      .getAppMetrics()
+      .find((metric) => metric.pid === osProcessId);
+
+    if (!processMetric) {
+      return null;
+    }
+
+    return {
+      private: processMetric.memory.privateBytes ?? 0,
+      shared: 0,
+      residentSet: processMetric.memory.workingSetSize,
+    };
+  };
+
+  const collectRouteMemoryUsage = async (
+    routeId: string,
+    view: WebContentsView,
+  ) => {
+    if (view.webContents.isDestroyed()) {
+      return;
+    }
+
+    if (view.webContents.isLoadingMainFrame()) {
+      return;
+    }
+
+    const processInfo = (await getWebContentsProcessMemoryInfo(view).catch(
+      () => null,
+    )) as
+      | {
+          private: number;
+          shared: number;
+          residentSet?: number;
+        }
+      | null;
+
+    emitRouteMemoryUsage(routeId, {
+      privateSize: processInfo?.private ?? 0,
+      sharedSize: processInfo?.shared ?? 0,
+      residentSet: processInfo?.residentSet ?? 0,
+      heapSizeLimit: 0,
+      usedHeapSize: 0,
+    });
+  };
+
+  const syncAllRouteMemoryUsage = async () => {
+    await Promise.all(
+      Array.from(views.entries()).map(([routeId, view]) =>
+        collectRouteMemoryUsage(routeId, view).catch((error) => {
+          console.error(`Failed to collect memory usage for ${routeId}`, error);
+        }),
+      ),
+    );
+  };
 
   const createViewForRoute = (route: Route) => {
     if (!runtimeRoutes.some((existingRoute) => existingRoute.id === route.id)) {
@@ -257,6 +347,11 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
 
     views.set(route.id, view);
     void view.webContents.loadURL(route.loadURL);
+    webContents.on('did-finish-load', () => {
+      setTimeout(() => {
+        void collectRouteMemoryUsage(route.id, view);
+      }, 1000);
+    });
 
     return view;
   };
@@ -281,6 +376,7 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
 
     const routeIndex = runtimeRoutes.findIndex((r) => r.id === route.id);
     if (routeIndex >= 0) runtimeRoutes.splice(routeIndex, 1);
+    emitRouteMemoryUsage(route.id, undefined);
 
     try {
       await session.fromPartition(route.partition).clearStorageData();
@@ -332,7 +428,12 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
     mainWindow?.maximize();
   });
 
+  let memoryUsageInterval: NodeJS.Timeout | null = null;
+
   mainWindow.on('closed', () => {
+    if (memoryUsageInterval) {
+      clearInterval(memoryUsageInterval);
+    }
     updateAppUnreadBadge(null, 0);
     splashWindow?.close();
     splashWindow = null;
@@ -348,6 +449,16 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
   if (process.env.ELECTRON_ENV === 'development') {
     mainWindow.webContents.openDevTools();
   }
+
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    console.error('Main window render process gone', details);
+  });
+
+  mainWindow.once('show', () => {
+    memoryUsageInterval = setInterval(() => {
+      void syncAllRouteMemoryUsage();
+    }, MEMORY_USAGE_POLL_INTERVAL_MS);
+  });
 
   return mainWindow;
 };

@@ -16,6 +16,7 @@ const validChannels = [
   "open-settings",
   "get-app-settings",
   "set-startup-open-mode",
+  "route-memory-usage-updated",
 ];
 
 contextBridge.exposeInMainWorld("electronAPI", {

@@ -1,4 +1,4 @@
-import { Route } from "../../common/routes";
+import { Route, RouteMemoryUsage } from "../../common/routes";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -17,6 +17,10 @@ interface AppState {
   addRoute: (route: Route) => void;
   removeRoute: (routeId: string) => void;
   updateRoutesOrder: (routes: Array<Route>) => void;
+  updateRouteMemoryUsage: (
+    routeId: string,
+    memoryUsage: RouteMemoryUsage | undefined,
+  ) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -55,9 +59,19 @@ export const useAppStore = create<AppState>()(
           };
         }),
       updateRoutesOrder: (routes) => set({ routes }),
+      updateRouteMemoryUsage: (routeId, memoryUsage) =>
+        set((state) => ({
+          routes: state.routes.map((route) =>
+            route.id === routeId ? { ...route, memoryUsage } : route,
+          ),
+        })),
     }),
     {
       name: "omnia-app-storage", // Key for localStorage
+      partialize: (state) => ({
+        ...state,
+        routes: state.routes.map(({ memoryUsage, ...route }) => route),
+      }),
     },
   ),
 );

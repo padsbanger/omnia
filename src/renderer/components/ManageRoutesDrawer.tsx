@@ -52,6 +52,16 @@ const ManageRoutesDrawer = ({ closeDrawer }: ManageRoutesDrawerProps) => {
     navigate("/");
   };
 
+  const formatMegabytes = (kilobytes: number) => `${(kilobytes / 1024).toFixed(1)} MB`;
+  const formatGigabytes = (kilobytes: number) => `${(kilobytes / (1024 * 1024)).toFixed(1)} GB`;
+
+  const totalMemoryUsage = routes.reduce((total, route) => {
+    if (!route.memoryUsage) {
+      return total;
+    }
+    return total + route.memoryUsage.residentSet;
+  }, 0);
+
   return (
     <Drawer.Backdrop
       variant="transparent"
@@ -82,6 +92,11 @@ const ManageRoutesDrawer = ({ closeDrawer }: ManageRoutesDrawerProps) => {
                         <div className="flex flex-col">
                           <Label>{route.label}</Label>
                           <Description>{route.loadURL}</Description>
+                          <Description>
+                            {route.memoryUsage
+                              ? `Memory: ${formatMegabytes(route.memoryUsage.residentSet)}`
+                              : "Memory: measuring..."}
+                          </Description>
                         </div>
                       </div>
                       <div className="flex flew-row gap-3 mt-3 align-baseline justify-start items-center">
@@ -175,7 +190,13 @@ const ManageRoutesDrawer = ({ closeDrawer }: ManageRoutesDrawerProps) => {
                       </Button>
                     </div>
                   </div>
+
                 )}
+                <div className="mt-2 flex items-center justify-between gap-3 rounded-md border p-3">
+                  <div className="flex flex-col">
+                    <Label>Total memory usage: {formatGigabytes(totalMemoryUsage)}</Label>
+                    </div>
+                </div>
                 <div className="mt-2 flex justify-end">
                   <Button type="button" onClick={closeDrawer}>
                     Close

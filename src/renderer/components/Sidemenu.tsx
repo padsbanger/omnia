@@ -15,6 +15,7 @@ const Sidemenu = () => {
     unreadCounts,
     setActiveTab,
     updateUnreadCount,
+    updateRouteMemoryUsage,
     routes,
     activeDrawer,
     windowLayout,
@@ -118,6 +119,31 @@ const Sidemenu = () => {
       unsubscribeGlobal?.();
     };
   }, [updateUnreadCount]);
+
+  useEffect(() => {
+    const unsubscribeMemory = window.electronAPI.onFromMain(
+      "route-memory-usage-updated",
+      ({
+        routeId,
+        memoryUsage,
+      }: {
+        routeId: string;
+        memoryUsage?: {
+          privateSize: number;
+          sharedSize: number;
+          residentSet: number;
+          heapSizeLimit: number;
+          usedHeapSize: number;
+        };
+      }) => {
+        updateRouteMemoryUsage(routeId, memoryUsage);
+      },
+    );
+
+    return () => {
+      unsubscribeMemory?.();
+    };
+  }, [updateRouteMemoryUsage]);
 
   useEffect(() => {
     return () => setActiveDrawer(null);

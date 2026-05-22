@@ -1,3 +1,11 @@
+export type RouteMemoryUsage = {
+  privateSize: number;
+  sharedSize: number;
+  residentSet: number;
+  heapSizeLimit: number;
+  usedHeapSize: number;
+};
+
 export type Route = {
   path: string;
   id: string;
@@ -7,8 +15,5 @@ export type Route = {
   partition: string;
   internalHosts?: string[];
   openExternalLinksInBrowser?: boolean;
-  memoryUsage?: {
-    heapSizeLimit: number;
-    usedHeapSize: number;
-  };
+  memoryUsage?: RouteMemoryUsage;
 };
