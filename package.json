@@ -17,7 +17,13 @@
     "productName": "Omnia",
     "icon": "src/assets/icon.png"
   },
-  "keywords": [],
+  "keywords": [
+    "electron",
+    "react",
+    "multi tasking",
+    "social media",
+    "productivity"
+  ],
   "author": {
     "name": "Michał Lach",
     "email": "kontakt@michal-lach.pl"

@@ -1,5 +1,7 @@
 import {
+  app,
   BrowserWindow,
+  nativeImage,
   screen,
   session,
   shell,
@@ -20,11 +22,71 @@ import getInternalHostsForRoute from '../../common/utils/getInternalHostsForRout
 import isGoogleOAuthPopupUrl from '../../common/utils/isGoogleOAuthPopupUrl';
 
 const GOOGLE_OAUTH_POPUP_ICONS = new Set(['twitter', 'tradingview']);
+const WEBAUTHN_DISABLED_ICONS = new Set(['gmail', 'twitter']);
+const DISABLED_WEBAUTHN_BLINK_FEATURES =
+  'WebAuth,WebAuthenticationConditionalUI';
 
+type CreateWindowOptions = {
+  startMinimized?: boolean;
+};
 
-const createWindow = () => {
+const getUnreadOverlayText = (count: number) => {
+  if (count <= 0) return '';
+  if (count > 99) return '99+';
+  return String(count);
+};
+
+const createOverlayIcon = (count: number) => {
+  const label = getUnreadOverlayText(count);
+  if (!label) {
+    return null;
+  }
+
+  const fontSize = label.length > 2 ? 17 : 20;
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32">
+      <circle cx="16" cy="16" r="16" fill="#ef4444" />
+      <text
+        x="16"
+        y="17"
+        text-anchor="middle"
+        dominant-baseline="central"
+        font-family="Segoe UI, Arial, sans-serif"
+        font-size="${fontSize}"
+        font-weight="700"
+        fill="#ffffff"
+      >${label}</text>
+    </svg>
+  `;
+
+  return nativeImage.createFromDataURL(
+    `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`,
+  );
+};
+
+const updateAppUnreadBadge = (
+  mainWindow: BrowserWindow | null,
+  totalUnread: number,
+) => {
+  if (process.platform === 'win32') {
+    const overlayIcon = createOverlayIcon(totalUnread);
+    mainWindow?.setOverlayIcon(
+      overlayIcon,
+      totalUnread > 0 ? `${totalUnread} unread notifications` : '',
+    );
+    return;
+  }
+
+  if (process.platform === 'darwin' || process.platform === 'linux') {
+    app.setBadgeCount(totalUnread);
+  }
+};
+
+const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
   let mainWindow: BrowserWindow | null = null;
-  let splashWindow: BrowserWindow | null = createSplashWindow();
+  let splashWindow: BrowserWindow | null = startMinimized
+    ? null
+    : createSplashWindow();
   // Add this near your unreadCounts declaration
   const audioStates: Map<string, { isPlaying: boolean; mediaType?: string }> =
     new Map();
@@ -77,6 +139,9 @@ const createWindow = () => {
         autoplayPolicy: 'no-user-gesture-required',
         backgroundThrottling: false,
         plugins: true,
+        disableBlinkFeatures: WEBAUTHN_DISABLED_ICONS.has(route.icon)
+          ? DISABLED_WEBAUTHN_BLINK_FEATURES
+          : undefined,
       },
     });
 
@@ -131,6 +196,8 @@ const createWindow = () => {
       else unreadCounts.push({ routeId: route.id, count: unread });
 
       const totalUnread = unreadCounts.reduce((a, b) => a + b.count, 0);
+
+      updateAppUnreadBadge(mainWindow, totalUnread);
 
       mainWindow?.webContents.send('global-unread-update', {
         unreadCounts,
@@ -225,6 +292,7 @@ const createWindow = () => {
       (total, item) => total + item.count,
       0,
     );
+    updateAppUnreadBadge(mainWindow, totalUnread);
     mainWindow?.webContents.send('global-unread-update', {
       unreadCounts,
       total: totalUnread,
@@ -253,11 +321,19 @@ const createWindow = () => {
   mainWindow.once('ready-to-show', () => {
     splashWindow?.close();
     splashWindow = null;
+
+    if (startMinimized) {
+      mainWindow?.show();
+      mainWindow?.minimize();
+      return;
+    }
+
     mainWindow?.show();
     mainWindow?.maximize();
   });
 
   mainWindow.on('closed', () => {
+    updateAppUnreadBadge(null, 0);
     splashWindow?.close();
     splashWindow = null;
     mainWindow = null;

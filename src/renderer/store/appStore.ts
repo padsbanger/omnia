@@ -7,12 +7,12 @@ interface AppState {
   activeTab: string | null;
   unreadCounts: Record<string, number>;
   routes: Array<Route>;
-  activeDrawer: "create" | "manage" | null;
+  activeDrawer: "create" | "manage" | "settings" | null;
   windowLayout: "single" | "spread" | "matrix";
   toggleSidebar: () => void;
   setActiveTab: (tabId: string | null) => void;
   updateUnreadCount: (tabId: string, count: number) => void;
-  setActiveDrawer: (drawer: "create" | "manage" | null) => void;
+  setActiveDrawer: (drawer: "create" | "manage" | "settings" | null) => void;
   setWindowLayout: (layout: "single" | "spread" | "matrix") => void;
   addRoute: (route: Route) => void;
   removeRoute: (routeId: string) => void;
@@ -26,7 +26,7 @@ export const useAppStore = create<AppState>()(
       activeTab: null as string | null,
       unreadCounts: {},
       routes: [] as Array<Route>,
-      activeDrawer: null as "create" | "manage" | null,
+      activeDrawer: null as "create" | "manage" | "settings" | null,
       windowLayout: "single" as "single" | "spread" | "matrix",
 
       // Actions

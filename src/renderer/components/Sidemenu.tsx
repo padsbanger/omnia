@@ -7,6 +7,7 @@ import { FaEdit } from 'react-icons/fa';
 import { useAppStore } from "../store";
 import CreateNewRouteForm from "./CreateNewRouteForm";
 import ManageRoutesDrawer from "./ManageRoutesDrawer";
+import SettingsDrawer from "./SettingsDrawer";
 
 const Sidemenu = () => {
   const {
@@ -89,6 +90,14 @@ const Sidemenu = () => {
   }, [setActiveTab]);
 
   useEffect(() => {
+    const unsubscribe = window.electronAPI.onFromMain("open-settings", () => {
+      setActiveDrawer("settings");
+    });
+
+    return () => unsubscribe?.();
+  }, [setActiveDrawer]);
+
+  useEffect(() => {
     const unsubscribeGlobal = window.electronAPI.onFromMain(
       "global-unread-update",
       ({
@@ -119,6 +128,8 @@ const Sidemenu = () => {
       <CreateNewRouteForm key="create" closeDrawer={closeDrawer} />
     ) : activeDrawer === "manage" ? (
       <ManageRoutesDrawer key="manage" closeDrawer={closeDrawer} />
+    ) : activeDrawer === "settings" ? (
+      <SettingsDrawer key="settings" closeDrawer={closeDrawer} />
     ) : null;
 
   return (

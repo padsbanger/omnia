@@ -13,6 +13,9 @@ const validChannels = [
   "delete-route-view",
   "clear-single-partition",
   "main-window-resize",
+  "open-settings",
+  "get-app-settings",
+  "set-startup-open-mode",
 ];
 
 contextBridge.exposeInMainWorld("electronAPI", {
