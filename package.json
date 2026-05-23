@@ -1,8 +1,8 @@
 {
   "name": "omnia",
   "productName": "omnia",
-  "version": "0.5.0",
-  "description": "My Electron application description",
+  "version": "0.6.0",
+  "description": "Omnia is a desktop workspace application built with Electron and React. It provides a unified interface for managing multiple social media accounts, allowing users to stay connected and productive without the need to switch between different platforms.",
   "main": ".vite/build/main.js",
   "private": true,
   "scripts": {
