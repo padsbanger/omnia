@@ -1,6 +1,18 @@
 # Omnia
 
-Omnia is a desktop workspace organizer app that unifies multiple web-based applications (like messaging, email, productivity tools, and more) into a single, to boost productivity and simplify multitasking
+Omnia is a desktop workspace organizer app that unifies multiple web-based applications (like messaging, email, productivity tools, and more) into a single, to boost productivity and simplify multitasking.
+
+## Supported integrations:
+
+- Messenger
+- Gmail
+- Spotify
+- Slack
+- TradingView
+- Discord
+- Microsoft Teams
+
+and many more coming. You can let me know what integation you want next by raising and [issue](https://github.com/padsbanger/omnia/issues).
 
 ---
 

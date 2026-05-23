@@ -8,6 +8,12 @@ import {
   WebContentsView,
 } from 'electron';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import {
+  DrawerKind,
+  DrawerStateSnapshot,
+  WindowLayout,
+} from '../../common/drawer';
 import { Route, RouteMemoryUsage } from '../../common/routes';
 import extractUnreadFromTitle from '../../common/utils/extractUnreadFromTitle';
 
@@ -26,6 +32,13 @@ const WEBAUTHN_DISABLED_ICONS = new Set(['gmail', 'twitter']);
 const DISABLED_WEBAUTHN_BLINK_FEATURES =
   'WebAuth,WebAuthenticationConditionalUI';
 const MEMORY_USAGE_POLL_INTERVAL_MS = 15000;
+const SIDEMENU_WIDTH = 93;
+const DRAWER_ANIMATION_DURATION_MS = 180;
+const DRAWER_WIDTHS: Record<DrawerKind, number> = {
+  create: 360,
+  manage: 360,
+  settings: 440,
+};
 
 type CreateWindowOptions = {
   startMinimized?: boolean;
@@ -108,6 +121,15 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
   const views = new Map<string, WebContentsView>();
   const runtimeRoutes: Route[] = [];
   const unreadCounts: Array<{ routeId: string; count: number }> = [];
+  let drawerWindow: BrowserWindow | null = null;
+  let drawerWindowTargetUrl: string | null = null;
+  let drawerAnimationTimer: NodeJS.Timeout | null = null;
+  let drawerState: DrawerStateSnapshot = {
+    activeDrawer: null,
+    activeTab: null,
+    routes: [],
+    windowLayout: 'single',
+  };
 
   const emitRouteMemoryUsage = (
     routeId: string,
@@ -214,6 +236,178 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
       unreadCounts,
       total: totalUnread,
     });
+  };
+
+  const getDrawerWindowUrl = (drawer: DrawerKind) => {
+    if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+      return `${MAIN_WINDOW_VITE_DEV_SERVER_URL}?drawer=${drawer}`;
+    }
+
+    const fileUrl = pathToFileURL(
+      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
+    );
+    fileUrl.searchParams.set('drawer', drawer);
+    return fileUrl.toString();
+  };
+
+  const clearDrawerAnimation = () => {
+    if (drawerAnimationTimer) {
+      clearInterval(drawerAnimationTimer);
+      drawerAnimationTimer = null;
+    }
+  };
+
+  const getDrawerBounds = (drawer: DrawerKind) => {
+    if (!mainWindow) {
+      return null;
+    }
+
+    const contentBounds = mainWindow.getContentBounds();
+    return {
+      x: contentBounds.x + SIDEMENU_WIDTH,
+      y: contentBounds.y,
+      width: DRAWER_WIDTHS[drawer],
+      height: contentBounds.height,
+    };
+  };
+
+  const animateDrawerWindowIn = (drawer: DrawerKind) => {
+    if (!drawerWindow || drawerWindow.isDestroyed()) {
+      return;
+    }
+
+    const finalBounds = getDrawerBounds(drawer);
+    if (!finalBounds) {
+      return;
+    }
+
+    clearDrawerAnimation();
+
+    const startBounds = {
+      ...finalBounds,
+      x: finalBounds.x - finalBounds.width,
+    };
+    const animationStart = Date.now();
+
+    drawerWindow.setBounds(startBounds);
+    if (!drawerWindow.isVisible()) {
+      drawerWindow.show();
+    }
+
+    drawerAnimationTimer = setInterval(() => {
+      if (!drawerWindow || drawerWindow.isDestroyed()) {
+        clearDrawerAnimation();
+        return;
+      }
+
+      const elapsed = Date.now() - animationStart;
+      const progress = Math.min(1, elapsed / DRAWER_ANIMATION_DURATION_MS);
+      const easedProgress = 1 - Math.pow(1 - progress, 3);
+
+      drawerWindow.setBounds({
+        ...finalBounds,
+        x: Math.round(
+          startBounds.x + (finalBounds.x - startBounds.x) * easedProgress,
+        ),
+      });
+
+      if (progress >= 1) {
+        clearDrawerAnimation();
+      }
+    }, 16);
+  };
+
+  const updateDrawerWindowBounds = () => {
+    if (!mainWindow || !drawerWindow || drawerWindow.isDestroyed()) {
+      return;
+    }
+
+    const activeDrawer = drawerState.activeDrawer;
+    if (!activeDrawer) {
+      return;
+    }
+
+    const bounds = getDrawerBounds(activeDrawer);
+    if (!bounds) {
+      return;
+    }
+
+    drawerWindow.setBounds(bounds);
+  };
+
+  const closeDrawerWindow = () => {
+    if (!drawerWindow || drawerWindow.isDestroyed()) {
+      drawerState.activeDrawer = null;
+      drawerWindow = null;
+      return;
+    }
+
+    drawerState.activeDrawer = null;
+    clearDrawerAnimation();
+    drawerWindow.hide();
+    mainWindow?.webContents.send('drawer-window-closed');
+  };
+
+  const ensureDrawerWindow = async (drawer: DrawerKind) => {
+    if (!mainWindow) {
+      return;
+    }
+
+    const targetUrl = getDrawerWindowUrl(drawer);
+
+    if (!drawerWindow || drawerWindow.isDestroyed()) {
+      drawerWindow = new BrowserWindow({
+        parent: mainWindow,
+        frame: false,
+        resizable: false,
+        minimizable: false,
+        maximizable: false,
+        fullscreenable: false,
+        show: false,
+        skipTaskbar: true,
+        backgroundColor: '#ffffff',
+        webPreferences: {
+          nodeIntegration: false,
+          contextIsolation: true,
+          preload: path.join(__dirname, 'preload.js'),
+        },
+      });
+
+      drawerWindow.on('closed', () => {
+        clearDrawerAnimation();
+        drawerWindow = null;
+        drawerWindowTargetUrl = null;
+      });
+    }
+
+    updateDrawerWindowBounds();
+
+    const currentUrl = drawerWindow.webContents.getURL();
+    const isAlreadyTargetingUrl =
+      drawerWindowTargetUrl === targetUrl ||
+      currentUrl === targetUrl;
+
+    if (!isAlreadyTargetingUrl) {
+      drawerWindowTargetUrl = targetUrl;
+      try {
+        await drawerWindow.loadURL(targetUrl);
+      } catch (error) {
+        const navigationError = error as { code?: string };
+        if (navigationError.code === 'ERR_ABORTED') {
+          return;
+        }
+
+        throw error;
+      }
+    }
+
+    if (!drawerWindow.isVisible()) {
+      animateDrawerWindowIn(drawer);
+    } else {
+      updateDrawerWindowBounds();
+    }
+
+    drawerWindow.focus();
   };
 
   const createViewForRoute = (route: Route) => {
@@ -427,6 +621,118 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
     return true;
   };
 
+  const getDrawerState = () => drawerState;
+
+  const syncDrawerState = async (state: DrawerStateSnapshot) => {
+    drawerState = state;
+
+    if (!state.activeDrawer) {
+      closeDrawerWindow();
+      return;
+    }
+
+    await ensureDrawerWindow(state.activeDrawer);
+  };
+
+  const createRouteFromDrawer = async (route: Route) => {
+    if (!route || !route.id) {
+      return false;
+    }
+
+    const view = createViewForRoute(route);
+    if (!view) {
+      return false;
+    }
+
+    if (!runtimeRoutes.some((existingRoute) => existingRoute.id === route.id)) {
+      runtimeRoutes.push(route);
+    }
+
+    drawerState = {
+      ...drawerState,
+      activeTab: route.id,
+      routes: [...drawerState.routes, route],
+    };
+
+    mainWindow?.webContents.send('drawer-route-created', { route });
+    return true;
+  };
+
+  const deleteRouteFromDrawer = async (routeId: string) => {
+    const route = drawerState.routes.find((item) => item.id === routeId);
+    if (!route) {
+      return { success: false, fallbackRoute: null };
+    }
+
+    const fallbackRoute =
+      drawerState.routes.find((item) => item.id !== routeId) ?? null;
+
+    const success = await removeRouteView(route);
+    if (!success) {
+      return { success: false, fallbackRoute: null };
+    }
+
+    drawerState = {
+      ...drawerState,
+      activeTab: drawerState.activeTab === routeId ? fallbackRoute?.id ?? null : drawerState.activeTab,
+      routes: drawerState.routes.filter((item) => item.id !== routeId),
+    };
+
+    mainWindow?.webContents.send('drawer-route-deleted', {
+      routeId,
+      fallbackRoute,
+    });
+
+    return { success: true, fallbackRoute };
+  };
+
+  const setRouteHibernationFromDrawer = async (
+    routeId: string,
+    isHibernated: boolean,
+  ) => {
+    const route = drawerState.routes.find((item) => item.id === routeId);
+    if (!route) {
+      return false;
+    }
+
+    if (isHibernated) {
+      const success = await hibernateRouteView(route);
+      if (!success) {
+        return false;
+      }
+    } else {
+      const restoredRoute = { ...route, isHibernated: false };
+      const view = createViewForRoute(restoredRoute);
+      if (!view) {
+        return false;
+      }
+    }
+
+    drawerState = {
+      ...drawerState,
+      routes: drawerState.routes.map((item) =>
+        item.id === routeId ? { ...item, isHibernated } : item,
+      ),
+    };
+
+    mainWindow?.webContents.send('drawer-route-hibernation-changed', {
+      routeId,
+      isHibernated,
+      route: { ...route, isHibernated },
+    });
+    return true;
+  };
+
+  const setWindowLayoutFromDrawer = (windowLayout: WindowLayout) => {
+    drawerState = {
+      ...drawerState,
+      windowLayout,
+    };
+    mainWindow?.webContents.send('drawer-window-layout-changed', {
+      windowLayout,
+    });
+  };
+
   registerIpcHandlers({
     getMainWindow: () => mainWindow,
     views,
@@ -434,6 +740,13 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
     createViewForRoute,
     removeRouteView,
     hibernateRouteView,
+    getDrawerState,
+    syncDrawerState,
+    closeDrawerWindow,
+    createRouteFromDrawer,
+    deleteRouteFromDrawer,
+    setRouteHibernationFromDrawer,
+    setWindowLayoutFromDrawer,
   });
 
   // Load main renderer (unchanged)
@@ -465,13 +778,20 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
     if (memoryUsageInterval) {
       clearInterval(memoryUsageInterval);
     }
+    clearDrawerAnimation();
+    closeDrawerWindow();
     updateAppUnreadBadge(null, 0);
     splashWindow?.close();
     splashWindow = null;
     mainWindow = null;
   });
 
+  mainWindow.on('move', () => {
+    updateDrawerWindowBounds();
+  });
+
   mainWindow.on('resize', () => {
+    updateDrawerWindowBounds();
     mainWindow?.webContents.send('main-window-resize', {
       bounds: mainWindow.getBounds(),
     });

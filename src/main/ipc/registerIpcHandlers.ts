@@ -5,6 +5,7 @@ import {
   session,
   shell,
 } from "electron";
+import { DrawerStateSnapshot, WindowLayout } from "../../common/drawer";
 import { Route } from "../../common/routes";
 import isExternalUrl from "../../common/utils/isExternalUrl";
 
@@ -15,6 +16,19 @@ type RegisterIpcHandlersParams = {
   createViewForRoute: (route: Route) => WebContentsView | null;
   removeRouteView: (route: Route) => Promise<boolean>;
   hibernateRouteView: (route: Route) => Promise<boolean>;
+  getDrawerState: () => DrawerStateSnapshot;
+  syncDrawerState: (state: DrawerStateSnapshot) => Promise<void>;
+  closeDrawerWindow: () => void;
+  createRouteFromDrawer: (route: Route) => Promise<boolean>;
+  deleteRouteFromDrawer: (routeId: string) => Promise<{
+    success: boolean;
+    fallbackRoute: Route | null;
+  }>;
+  setRouteHibernationFromDrawer: (
+    routeId: string,
+    isHibernated: boolean,
+  ) => Promise<boolean>;
+  setWindowLayoutFromDrawer: (windowLayout: WindowLayout) => void;
 };
 
 type Bounds = {
@@ -31,6 +45,13 @@ export default function registerIpcHandlers({
   createViewForRoute,
   removeRouteView,
   hibernateRouteView,
+  getDrawerState,
+  syncDrawerState,
+  closeDrawerWindow,
+  createRouteFromDrawer,
+  deleteRouteFromDrawer,
+  setRouteHibernationFromDrawer,
+  setWindowLayoutFromDrawer,
 }: RegisterIpcHandlersParams) {
   ipcMain.removeHandler("activate-tab");
   ipcMain.handle(
@@ -51,12 +72,12 @@ export default function registerIpcHandlers({
       mainWindow.contentView.removeChildView(view);
       mainWindow.contentView.addChildView(view);
 
-      const winBounds = mainWindow.getBounds();
+      const contentBounds = mainWindow.getContentBounds();
       view.setBounds({
         x: 93,
         y: 0,
-        width: winBounds.width - 93,
-        height: winBounds.height,
+        width: Math.max(0, contentBounds.width - 93),
+        height: contentBounds.height,
       });
 
       mainWindow.webContents.send("tabId-change", { tabId: route.id });
@@ -116,18 +137,6 @@ export default function registerIpcHandlers({
       console.log(`Cleared partition ${route.partition}`);
     },
   );
-
-  ipcMain.removeHandler("clear-partitions");
-  ipcMain.handle("clear-partitions", async () => {
-    await session.defaultSession.clearStorageData();
-
-    routes.forEach((route) => {
-      const ses = session.fromPartition(route.partition);
-      ses.clearStorageData().then(() => {
-        console.log(`Cleared partition ${route.partition}`);
-      });
-    });
-  });
 
   ipcMain.removeHandler("open-external-link");
   ipcMain.handle("open-external-link", async (_, { url }) => {
@@ -201,6 +210,76 @@ export default function registerIpcHandlers({
         return { success: false, reason: "Failed to hibernate route view" };
       }
 
+      return { success: true };
+    },
+  );
+
+  ipcMain.removeHandler("sync-drawer-state");
+  ipcMain.handle(
+    "sync-drawer-state",
+    async (_event, { state }: { state: DrawerStateSnapshot }) => {
+      try {
+        await syncDrawerState(state);
+        return { success: true };
+      } catch (error) {
+        console.error("Failed to sync drawer state", error);
+        return { success: false };
+      }
+    },
+  );
+
+  ipcMain.removeHandler("get-drawer-state");
+  ipcMain.handle("get-drawer-state", async () => getDrawerState());
+
+  ipcMain.removeHandler("close-drawer-window");
+  ipcMain.handle("close-drawer-window", async () => {
+    closeDrawerWindow();
+    return { success: true };
+  });
+
+  ipcMain.removeHandler("drawer-create-route");
+  ipcMain.handle(
+    "drawer-create-route",
+    async (_event, { route }: { route: Route }) => {
+      const success = await createRouteFromDrawer(route);
+      return { success };
+    },
+  );
+
+  ipcMain.removeHandler("drawer-delete-route");
+  ipcMain.handle(
+    "drawer-delete-route",
+    async (_event, { routeId }: { routeId: string }) => {
+      return deleteRouteFromDrawer(routeId);
+    },
+  );
+
+  ipcMain.removeHandler("drawer-set-route-hibernation");
+  ipcMain.handle(
+    "drawer-set-route-hibernation",
+    async (
+      _event,
+      {
+        routeId,
+        isHibernated,
+      }: {
+        routeId: string;
+        isHibernated: boolean;
+      },
+    ) => {
+      const success = await setRouteHibernationFromDrawer(
+        routeId,
+        isHibernated,
+      );
+      return { success };
+    },
+  );
+
+  ipcMain.removeHandler("drawer-set-window-layout");
+  ipcMain.handle(
+    "drawer-set-window-layout",
+    async (_event, { windowLayout }: { windowLayout: WindowLayout }) => {
+      setWindowLayoutFromDrawer(windowLayout);
       return { success: true };
     },
   );

@@ -1,6 +1,6 @@
 import { useMemo, useState, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { Drawer, Button } from "@heroui/react";
+import { Button } from "@heroui/react";
 import { Route } from "../../common/routes";
 import { useAppStore } from "../store";
 import {
@@ -15,6 +15,7 @@ import {
 
 type CreateNewRouteFormProps = {
   closeDrawer: () => void;
+  onCreateRoute?: (route: Route) => Promise<boolean>;
 };
 
 type RouteNavigationConfig = {
@@ -142,7 +143,10 @@ const getRouteNavigationConfig = (
   };
 };;;;
 
-const CreateNewRouteForm = ({ closeDrawer }: CreateNewRouteFormProps) => {
+const CreateNewRouteForm = ({
+  closeDrawer,
+  onCreateRoute,
+}: CreateNewRouteFormProps) => {
   const navigate = useNavigate();
   const { addRoute, setActiveTab, setActiveDrawer } = useAppStore();
 
@@ -197,6 +201,14 @@ const CreateNewRouteForm = ({ closeDrawer }: CreateNewRouteFormProps) => {
       openExternalLinksInBrowser: navigationConfig.openExternalLinksInBrowser,
     };
 
+    if (onCreateRoute) {
+      const created = await onCreateRoute(route);
+      if (created) {
+        closeDrawer();
+      }
+      return;
+    }
+
     const result = await window.electronAPI.invoke("create-route-view", {
       route,
     });
@@ -211,78 +223,63 @@ const CreateNewRouteForm = ({ closeDrawer }: CreateNewRouteFormProps) => {
   };
 
   return (
-    <Drawer.Backdrop
-      variant="transparent"
-      isDismissable={false}
-      className="z-2000"
-      onClick={closeDrawer}
-    >
-      <Drawer.Content placement="left" className="z-2001 w-90 ml-23.25">
-        <div onClick={(event) => event.stopPropagation()}>
-          <Drawer.Dialog>
-            <Drawer.Header>
-              <Drawer.Heading>Add route</Drawer.Heading>
-            </Drawer.Header>
-            <Drawer.Body>
-              <form
-                className="flex flex-col gap-3 pr-5"
-                onSubmit={handleCreateRoute}
-              >
-                <label className="text-sm flex flex-col gap-1">
-                  Label
-                  <input
-                    className="border rounded px-2 py-1"
-                    value={label}
-                    onChange={(event) => setLabel(event.target.value)}
-                    placeholder="Work Gmail"
-                    required
-                  />
-                </label>
-                <label className="text-sm flex flex-col gap-1">
-                  Application
-                  <select
-                    className="border rounded px-2 py-1"
-                    value={application}
-                    onChange={(event) =>
-                      handleApplicationChange(
-                        event.target.value as ApplicationKey,
-                      )
-                    }
-                  >
-                    <option value="gmail">Gmail</option>
-                    <option value="discord">Discord</option>
-                    <option value="facebook">Facebook</option>
-                    <option value="twitter">Twitter</option>
-                    <option value="tradingview">TradingView</option>
-                    <option value="spotify">Spotify</option>
-                    <option value="slack">Slack</option>
-                    <option value="teams">Microsoft Teams</option>
-                  </select>
-                </label>
-                <label className="text-sm flex flex-col gap-1">
-                  URL
-                  <input
-                    className="border rounded px-2 py-1"
-                    value={url}
-                    onChange={(event) => setUrl(event.target.value)}
-                    placeholder="mail.google.com"
-                    required
-                  />
-                </label>
-                <div className="flex gap-2 justify-end mt-2">
-                  <Button type="button" onClick={closeDrawer}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" isDisabled={!canSubmit}>
-                    Save route
-                  </Button>
-                </div>
-              </form>
-            </Drawer.Body>
-          </Drawer.Dialog>
+    <div className="flex h-full flex-col">
+      <div className="border-b px-5 py-4">
+        <h2 className="text-lg font-semibold">Add route</h2>
+      </div>
+      <form
+        className="flex flex-1 flex-col gap-3 p-5"
+        onSubmit={handleCreateRoute}
+      >
+        <label className="text-sm flex flex-col gap-1">
+          Label
+          <input
+            className="border rounded px-2 py-1"
+            value={label}
+            onChange={(event) => setLabel(event.target.value)}
+            placeholder="Work Gmail"
+            required
+          />
+        </label>
+        <label className="text-sm flex flex-col gap-1">
+          Application
+          <select
+            className="border rounded px-2 py-1"
+            value={application}
+            onChange={(event) =>
+              handleApplicationChange(event.target.value as ApplicationKey)
+            }
+          >
+            <option value="gmail">Gmail</option>
+            <option value="discord">Discord</option>
+            <option value="facebook">Facebook</option>
+            <option value="twitter">Twitter</option>
+            <option value="tradingview">TradingView</option>
+            <option value="spotify">Spotify</option>
+            <option value="slack">Slack</option>
+            <option value="teams">Microsoft Teams</option>
+          </select>
+        </label>
+        <label className="text-sm flex flex-col gap-1">
+          URL
+          <input
+            className="border rounded px-2 py-1"
+            value={url}
+            onChange={(event) => setUrl(event.target.value)}
+            placeholder="mail.google.com"
+            required
+          />
+        </label>
+        <div className="mt-auto flex gap-2 justify-end pt-2">
+          <Button type="button" onClick={closeDrawer}>
+            Cancel
+          </Button>
+          <Button type="submit" isDisabled={!canSubmit}>
+            Save route
+          </Button>
         </div>
-      </Drawer.Content>
-    </Drawer.Backdrop>
+      </form>
+    </div>
   );
 };
 

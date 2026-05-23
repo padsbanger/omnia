@@ -1,5 +1,7 @@
-import { Button, Description, Drawer, Label, Tooltip } from "@heroui/react";
+import { Button, Description, Label, Tooltip } from "@heroui/react";
 import { useNavigate } from "react-router-dom";
+import { WindowLayout } from "../../common/drawer";
+import { Route } from "../../common/routes";
 import { useAppStore } from "../store";
 import { IoTrashBin } from "react-icons/io5";
 import { IoIosRefresh } from "react-icons/io";
@@ -8,22 +10,44 @@ import { WindowIcon } from "./WindowIcon";
 
 type ManageRoutesDrawerProps = {
   closeDrawer: () => void;
+  routes?: Array<Route>;
+  activeTab?: string | null;
+  windowLayout?: WindowLayout;
+  onDeleteRoute?: (routeId: string) => Promise<void>;
+  onToggleHibernation?: (routeId: string) => Promise<void>;
+  onWindowLayoutChange?: (windowLayout: WindowLayout) => Promise<void> | void;
 };
 
-const ManageRoutesDrawer = ({ closeDrawer }: ManageRoutesDrawerProps) => {
+const ManageRoutesDrawer = ({
+  closeDrawer,
+  routes: routesProp,
+  activeTab: activeTabProp,
+  windowLayout: windowLayoutProp,
+  onDeleteRoute,
+  onToggleHibernation,
+  onWindowLayoutChange,
+}: ManageRoutesDrawerProps) => {
   const navigate = useNavigate();
   const {
-    routes,
-    activeTab,
+    routes: storeRoutes,
+    activeTab: storeActiveTab,
     removeRoute,
     setActiveTab,
     updateUnreadCount,
-    windowLayout,
+    windowLayout: storeWindowLayout,
     setWindowLayout,
     setRouteHibernation,
   } = useAppStore();
+  const routes = routesProp ?? storeRoutes;
+  const activeTab = activeTabProp ?? storeActiveTab;
+  const windowLayout = windowLayoutProp ?? storeWindowLayout;
 
   const handleToggleHibernation = async (routeId: string) => {
+    if (onToggleHibernation) {
+      await onToggleHibernation(routeId);
+      return;
+    }
+
     const route = routes.find((item) => item.id === routeId);
     if (!route) return;
 
@@ -59,6 +83,11 @@ const ManageRoutesDrawer = ({ closeDrawer }: ManageRoutesDrawerProps) => {
   };
 
   const handleDeleteRoute = async (routeId: string) => {
+    if (onDeleteRoute) {
+      await onDeleteRoute(routeId);
+      return;
+    }
+
     const route = routes.find((item) => item.id === routeId);
     if (!route) return;
 
@@ -100,170 +129,166 @@ const ManageRoutesDrawer = ({ closeDrawer }: ManageRoutesDrawerProps) => {
   }, 0);
 
   return (
-    <Drawer.Backdrop
-      variant="transparent"
-      isDismissable={false}
-      className="z-2000"
-      onClick={closeDrawer}
-    >
-      <Drawer.Content placement="left" className="z-2001 w-90 ml-23.25">
-        <div onClick={(event) => event.stopPropagation()}>
-          <Drawer.Dialog>
-            <Drawer.Header>
-              <Drawer.Heading>Manage routes</Drawer.Heading>
-            </Drawer.Header>
-            <Drawer.Body>
-              <div className="flex flex-col gap-4 pr-4">
-                {routes.length === 0 ? (
-                  <div className="rounded-lg border border-dashed border-gray-300 px-2 py-6 text-sm text-gray-500">
-                    No routes yet.
-                  </div>
-                ) : (
-                  routes.map((route) => (
-                    <div
-                      className="flex flex-col p-3 rounded-md border"
-                      key={route.id}
-                    >
-                      <div className="flex flex-row gap-2">
-                        <WindowIcon icon={route.icon} />
-                        <div className="flex flex-col">
-                          <Label>{route.label}</Label>
-                          <Description>{route.loadURL}</Description>
-                          <Description>
-                            {route.isHibernated
-                              ? "Status: hibernated"
-                              : route.memoryUsage
-                              ? `Memory: ${formatMegabytes(route.memoryUsage.residentSet)}`
-                              : "Memory: measuring..."}
-                          </Description>
-                        </div>
-                      </div>
-                      <div className="flex flew-row gap-3 mt-3 align-baseline justify-start items-center">
-                        <Label>Actions: </Label>
-                        <div className="flex flex-row mr-2 gap-2">
-                          <Tooltip>
-                            <Button
-                              variant="secondary"
-                              onClick={() => handleToggleHibernation(route.id)}
-                            >
-                              {route.isHibernated ? "Restore" : "Hibernate"}
-                            </Button>
-                            <Tooltip.Content>
-                              <p>
-                                {route.isHibernated
-                                  ? "Wake this route and recreate its webview."
-                                  : "Unload this route's webview to free memory."}
-                              </p>
-                            </Tooltip.Content>
-                          </Tooltip>
-                          <Tooltip>
-                            <Button
-                              isIconOnly
-                              variant="secondary"
-                              isDisabled={route.isHibernated}
-                              onClick={() => {
-                                window.electronAPI.invoke("refresh-view", {
-                                  route,
-                                });
-                              }}
-                            >
-                              <IoIosRefresh />
-                            </Button>
-                            <Tooltip.Content>
-                              <p>Refresh this route.</p>
-                            </Tooltip.Content>
-                          </Tooltip>
-
-                          <Tooltip>
-                            <Button
-                              isIconOnly
-                              variant="secondary"
-                              isDisabled={route.isHibernated}
-                              onClick={() => {
-                                window.electronAPI.invoke(
-                                  "clear-single-partition",
-                                  { route },
-                                );
-                              }}
-                            >
-                              <IoTrashBin />
-                            </Button>
-                            <Tooltip.Content>
-                              <p>Clear site data for this route.</p>
-                            </Tooltip.Content>
-                          </Tooltip>
-                          <Tooltip>
-                            <Button
-                              isIconOnly
-                              variant="secondary"
-                              onClick={() => handleDeleteRoute(route.id)}
-                            >
-                              <RiCloseFill />
-                            </Button>
-                            <Tooltip.Content>
-                              <p>Delete this route.</p>
-                            </Tooltip.Content>
-                          </Tooltip>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-                {routes.length > 0 && (
-                  <div className="mt-2 flex items-center justify-between gap-3 rounded-md border p-3">
-                    <div className="flex flex-col">
-                      <Label>Window layout</Label>
-                      <Description>
-                        Spread all routes evenly in a single window.
-                      </Description>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant={
-                          windowLayout === "spread" ? "primary" : "secondary"
-                        }
-                        onClick={() =>
-                          setWindowLayout(
-                            windowLayout === "spread" ? "single" : "spread",
-                          )
-                        }
-                      >
-                        Columns
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={
-                          windowLayout === "matrix" ? "primary" : "secondary"
-                        }
-                        onClick={() =>
-                          setWindowLayout(
-                            windowLayout === "matrix" ? "single" : "matrix",
-                          )
-                        }
-                      >
-                        Matrix
-                      </Button>
-                    </div>
-                  </div>
-
-                )}
-                <div className="mt-2 flex items-center justify-between gap-3 rounded-md border p-3">
-                  <div className="flex flex-col">
-                    <Label>Total memory usage: {formatGigabytes(totalMemoryUsage)}</Label>
-                    </div>
-                </div>
-                <div className="mt-2 flex justify-end">
-                  <Button type="button" onClick={closeDrawer}>
-                    Close
-                  </Button>
+    <div className="flex h-full flex-col">
+      <div className="border-b px-5 py-4">
+        <h2 className="text-lg font-semibold">Manage routes</h2>
+      </div>
+      <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
+        {routes.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-gray-300 px-2 py-6 text-sm text-gray-500">
+            No routes yet.
+          </div>
+        ) : (
+          routes.map((route) => (
+            <div
+              className="flex flex-col p-3 rounded-md border"
+              key={route.id}
+            >
+              <div className="flex flex-row gap-2">
+                <WindowIcon icon={route.icon} />
+                <div className="flex flex-col">
+                  <Label>{route.label}</Label>
+                  <Description>{route.loadURL}</Description>
+                  <Description>
+                    {route.isHibernated
+                      ? "Status: hibernated"
+                      : route.memoryUsage
+                      ? `Memory: ${formatMegabytes(route.memoryUsage.residentSet)}`
+                      : "Memory: measuring..."}
+                  </Description>
                 </div>
               </div>
-            </Drawer.Body>
-          </Drawer.Dialog>
+              <div className="flex flew-row gap-3 mt-3 align-baseline justify-start items-center">
+                <Label>Actions: </Label>
+                <div className="flex flex-row mr-2 gap-2">
+                  <Tooltip>
+                    <Button
+                      variant="secondary"
+                      onClick={() => handleToggleHibernation(route.id)}
+                    >
+                      {route.isHibernated ? "Restore" : "Hibernate"}
+                    </Button>
+                    <Tooltip.Content>
+                      <p>
+                        {route.isHibernated
+                          ? "Wake this route and recreate its webview."
+                          : "Unload this route's webview to free memory."}
+                      </p>
+                    </Tooltip.Content>
+                  </Tooltip>
+                  <Tooltip>
+                    <Button
+                      isIconOnly
+                      variant="secondary"
+                      isDisabled={route.isHibernated}
+                      onClick={() => {
+                        window.electronAPI.invoke("refresh-view", {
+                          route,
+                        });
+                      }}
+                    >
+                      <IoIosRefresh />
+                    </Button>
+                    <Tooltip.Content>
+                      <p>Refresh this route.</p>
+                    </Tooltip.Content>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <Button
+                      isIconOnly
+                      variant="secondary"
+                      isDisabled={route.isHibernated}
+                      onClick={() => {
+                        window.electronAPI.invoke(
+                          "clear-single-partition",
+                          { route },
+                        );
+                      }}
+                    >
+                      <IoTrashBin />
+                    </Button>
+                    <Tooltip.Content>
+                      <p>Clear site data for this route.</p>
+                    </Tooltip.Content>
+                  </Tooltip>
+                  <Tooltip>
+                    <Button
+                      isIconOnly
+                      variant="secondary"
+                      onClick={() => handleDeleteRoute(route.id)}
+                    >
+                      <RiCloseFill />
+                    </Button>
+                    <Tooltip.Content>
+                      <p>Delete this route.</p>
+                    </Tooltip.Content>
+                  </Tooltip>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+        {routes.length > 0 && (
+          <div className="mt-2 flex items-center justify-between gap-3 rounded-md border p-3">
+            <div className="flex flex-col">
+              <Label>Window layout</Label>
+              <Description>
+                Spread all routes evenly in a single window.
+              </Description>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={
+                  windowLayout === "spread" ? "primary" : "secondary"
+                }
+                onClick={() => {
+                  const nextLayout =
+                    windowLayout === "spread" ? "single" : "spread";
+                  if (onWindowLayoutChange) {
+                    void onWindowLayoutChange(nextLayout);
+                    return;
+                  }
+
+                  setWindowLayout(nextLayout);
+                }}
+              >
+                Columns
+              </Button>
+              <Button
+                type="button"
+                variant={
+                  windowLayout === "matrix" ? "primary" : "secondary"
+                }
+                onClick={() => {
+                  const nextLayout =
+                    windowLayout === "matrix" ? "single" : "matrix";
+                  if (onWindowLayoutChange) {
+                    void onWindowLayoutChange(nextLayout);
+                    return;
+                  }
+
+                  setWindowLayout(nextLayout);
+                }}
+              >
+                Matrix
+              </Button>
+            </div>
+          </div>
+        )}
+        <div className="mt-2 flex items-center justify-between gap-3 rounded-md border p-3">
+          <div className="flex flex-col">
+            <Label>Total memory usage: {formatGigabytes(totalMemoryUsage)}</Label>
+          </div>
         </div>
-      </Drawer.Content>
-    </Drawer.Backdrop>
+        <div className="mt-auto flex justify-end">
+          <Button type="button" onClick={closeDrawer}>
+            Close
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 };
 

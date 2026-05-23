@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useAppStore } from "../store";
 
-const DRAWER_WIDTH = 360;
-
 type ContainerMap = Map<string, HTMLDivElement>;
 
 const SpreadWindows = () => {
-  const { routes, activeDrawer, windowLayout } = useAppStore();
+  const { routes, windowLayout } = useAppStore();
   const containerRefs = useRef<ContainerMap>(new Map());
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -37,19 +35,18 @@ const SpreadWindows = () => {
       }
 
       const rect = container.getBoundingClientRect();
-      const drawerOffset = activeDrawer ? DRAWER_WIDTH : 0;
 
       window.electronAPI.invoke("update-view-bounds", {
         route,
         bounds: {
-          x: Math.round(rect.left) + drawerOffset,
+          x: Math.round(rect.left),
           y: Math.round(rect.top),
-          width: Math.max(200, Math.round(rect.width) - drawerOffset),
+          width: Math.max(200, Math.round(rect.width)),
           height: Math.round(rect.height),
         },
       });
     },
-    [activeDrawer, routes],
+    [routes],
   );
 
   const syncAllBounds = useCallback(() => {

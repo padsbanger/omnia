@@ -1,4 +1,4 @@
-import { Button, Description, Drawer, Label } from "@heroui/react";
+import { Button, Description, Label } from "@heroui/react";
 import { useEffect, useState } from "react";
 import {
   type AppSettings,
@@ -66,77 +66,61 @@ const SettingsDrawer = ({ closeDrawer }: SettingsDrawerProps) => {
   };
 
   return (
-    <Drawer.Backdrop
-      variant="transparent"
-      isDismissable={false}
-      className="z-2000"
-      onClick={closeDrawer}
-    >
-      <Drawer.Content placement="left" className="z-2001 w-110 ml-23.25">
-        <div onClick={(event) => event.stopPropagation()}>
-          <Drawer.Dialog>
-            <Drawer.Header>
-              <Drawer.Heading>Settings</Drawer.Heading>
-            </Drawer.Header>
-            <Drawer.Body>
-              <div className="flex flex-col gap-6 pr-4">
-                <section className="rounded-xl border border-default-200 px-4 py-4 shadow-sm">
-                  <div className="mb-4 flex flex-col gap-1">
-                    <Label>Startup and window behavior</Label>
-                    <Description>
-                      Choose what Omnia should do when your system starts.
-                    </Description>
+    <div className="flex h-full flex-col">
+      <div className="border-b px-5 py-4">
+        <h2 className="text-lg font-semibold">Settings</h2>
+      </div>
+      <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-5">
+        <section className="rounded-xl border border-default-200 px-4 py-4 shadow-sm">
+          <div className="mb-4 flex flex-col gap-1">
+            <Label>Startup and window behavior</Label>
+            <Description>
+              Choose what Omnia should do when your system starts.
+            </Description>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {STARTUP_OPTIONS.map((option) => {
+              const isSelected = settings?.startupOpenMode === option.value;
+
+              return (
+                <label
+                  key={option.value}
+                  className={`flex cursor-pointer items-start gap-3 rounded-lg border px-4 py-3 transition ${
+                    isSelected
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-default-200 hover:border-default-300"
+                  } ${isSaving ? "opacity-70" : "opacity-100"}`}
+                >
+                  <input
+                    type="radio"
+                    name="startupOpenMode"
+                    className="mt-1"
+                    checked={isSelected}
+                    disabled={isSaving || settings === null}
+                    onChange={() => void handleStartupModeChange(option.value)}
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">
+                      {option.label}
+                    </span>
+                    <span className="text-sm text-default-600">
+                      {option.description}
+                    </span>
                   </div>
+                </label>
+              );
+            })}
+          </div>
+        </section>
 
-                  <div className="flex flex-col gap-3">
-                    {STARTUP_OPTIONS.map((option) => {
-                      const isSelected =
-                        settings?.startupOpenMode === option.value;
-
-                      return (
-                        <label
-                          key={option.value}
-                          className={`flex cursor-pointer items-start gap-3 rounded-lg border px-4 py-3 transition ${
-                            isSelected
-                              ? "border-blue-500 bg-blue-50"
-                              : "border-default-200 hover:border-default-300"
-                          } ${isSaving ? "opacity-70" : "opacity-100"}`}
-                        >
-                          <input
-                            type="radio"
-                            name="startupOpenMode"
-                            className="mt-1"
-                            checked={isSelected}
-                            disabled={isSaving || settings === null}
-                            onChange={() =>
-                              void handleStartupModeChange(option.value)
-                            }
-                          />
-                          <div className="flex flex-col">
-                            <span className="text-sm font-medium">
-                              {option.label}
-                            </span>
-                            <span className="text-sm text-default-600">
-                              {option.description}
-                            </span>
-                          </div>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </section>
-
-                <div className="flex justify-end">
-                  <Button type="button" onClick={closeDrawer}>
-                    Close
-                  </Button>
-                </div>
-              </div>
-            </Drawer.Body>
-          </Drawer.Dialog>
+        <div className="mt-auto flex justify-end">
+          <Button type="button" onClick={closeDrawer}>
+            Close
+          </Button>
         </div>
-      </Drawer.Content>
-    </Drawer.Backdrop>
+      </div>
+    </div>
   );
 };
 

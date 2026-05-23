@@ -81,8 +81,18 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: "omnia-app-storage", // Key for localStorage
+      merge: (persistedState, currentState) => {
+        const nextState = (persistedState ?? {}) as Partial<AppState>;
+
+        return {
+          ...currentState,
+          ...nextState,
+          activeDrawer: null,
+        };
+      },
       partialize: (state) => ({
         ...state,
+        activeDrawer: null,
         routes: state.routes.map(({ memoryUsage, ...route }) => route),
       }),
     },

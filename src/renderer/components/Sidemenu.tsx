@@ -3,12 +3,9 @@ import { WindowIcon } from "./WindowIcon";
 import { IoMdAdd } from "react-icons/io";
 import { GiNightSleep } from "react-icons/gi";
 import { useEffect, useState, type DragEvent } from "react";
-import { Button, Drawer, Tooltip } from "@heroui/react";
+import { Button, Tooltip } from "@heroui/react";
 import { FaEdit } from 'react-icons/fa';
 import { useAppStore } from "../store";
-import CreateNewRouteForm from "./CreateNewRouteForm";
-import ManageRoutesDrawer from "./ManageRoutesDrawer";
-import SettingsDrawer from "./SettingsDrawer";
 
 const Sidemenu = () => {
   const {
@@ -18,18 +15,12 @@ const Sidemenu = () => {
     updateUnreadCount,
     updateRouteMemoryUsage,
     routes,
-    activeDrawer,
     windowLayout,
-    setWindowLayout,
     setActiveDrawer,
     updateRoutesOrder,
   } = useAppStore();
   const [draggedRouteId, setDraggedRouteId] = useState<string | null>(null);
   const [dragOverRouteId, setDragOverRouteId] = useState<string | null>(null);
-
-  const closeDrawer = () => {
-    setActiveDrawer(null);
-  };
 
   const handleDragStart = (routeId: string) => {
     setDraggedRouteId(routeId);
@@ -73,13 +64,13 @@ const Sidemenu = () => {
   };
 
   useEffect(() => {
-    if (activeDrawer || windowLayout !== "single") return;
+    if (windowLayout !== "single") return;
 
     const activeRoute = routes.find((route) => route.id === activeTab);
     if (!activeRoute || activeRoute.isHibernated) return;
 
     window.electronAPI.invoke("activate-tab", { route: activeRoute });
-  }, [activeDrawer, activeTab, routes, windowLayout]);
+  }, [activeTab, windowLayout]);
 
   useEffect(() => {
     const unsubscribe = window.electronAPI.onFromMain(
@@ -150,41 +141,22 @@ const Sidemenu = () => {
     return () => setActiveDrawer(null);
   }, [setActiveDrawer]);
 
-  const activeDrawerContent =
-    activeDrawer === "create" ? (
-      <CreateNewRouteForm key="create" closeDrawer={closeDrawer} />
-    ) : activeDrawer === "manage" ? (
-      <ManageRoutesDrawer key="manage" closeDrawer={closeDrawer} />
-    ) : activeDrawer === "settings" ? (
-      <SettingsDrawer key="settings" closeDrawer={closeDrawer} />
-    ) : null;
-
   return (
     <div className="w-23.25 h-full bg-gray-800 shadow-lg flex flex-col items-center">
-      <Drawer
-        isOpen={activeDrawer !== null}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) {
-            closeDrawer();
-          }
-        }}
-      >
-        <Tooltip>
-          <Button
-            isIconOnly
-            className="my-6 text-white hover:bg-gray-700"
-            onClick={() => {
-              setActiveDrawer("create");
-            }}
-          >
-            <IoMdAdd />
-          </Button>
-          <Tooltip.Content>
-            <p>Add new route.</p>
-          </Tooltip.Content>
-        </Tooltip>
-        {activeDrawerContent}
-      </Drawer>
+      <Tooltip>
+        <Button
+          isIconOnly
+          className="my-6 text-white hover:bg-gray-700"
+          onClick={() => {
+            setActiveDrawer("create");
+          }}
+        >
+          <IoMdAdd />
+        </Button>
+        <Tooltip.Content>
+          <p>Add new route.</p>
+        </Tooltip.Content>
+      </Tooltip>
       {routes.map((route) => {
         const isActive = route.id === activeTab;
         return (
