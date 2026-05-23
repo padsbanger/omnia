@@ -8,6 +8,7 @@ import {
   FACEBOOK_HOSTS,
   TWITTER_HOSTS,
   SLACK_HOSTS,
+  MICROSOFT_TEAMS_HOSTS,
   TRADINGVIEW_HOSTS,
   SPOTIFY_HOSTS,
 } from "../../common/auth_hosts";
@@ -28,7 +29,8 @@ type ApplicationKey =
   | 'tradingview'
   | 'twitter'
   | 'spotify'
-  | 'slack';
+  | 'slack'
+  | 'teams';
 
 const APPLICATION_DEFAULTS: Record<
   ApplicationKey,
@@ -41,6 +43,7 @@ const APPLICATION_DEFAULTS: Record<
   twitter: { label: 'Twitter', url: 'https://twitter.com/home' },
   spotify: { label: 'Spotify', url: 'https://open.spotify.com/home' },
   slack: { label: 'Slack', url: 'https://app.slack.com/client' },
+  teams: { label: 'Microsoft Teams', url: 'https://teams.microsoft.com' },
 };
 
 const buildRouteId = (label: string) =>
@@ -79,6 +82,19 @@ const getRouteNavigationConfig = (
   if (icon === 'slack' || lowerHost.endsWith('slack.com')) {
     return {
       internalHosts: [...SLACK_HOSTS, ...GOOGLE_HOSTS],
+      openExternalLinksInBrowser: true,
+    };
+  }
+
+  if (
+    icon === 'teams' ||
+    lowerHost.endsWith('teams.microsoft.com') ||
+    lowerHost.endsWith('teams.live.com') ||
+    lowerHost.endsWith('microsoftonline.com') ||
+    lowerHost.endsWith('office.com')
+  ) {
+    return {
+      internalHosts: MICROSOFT_TEAMS_HOSTS,
       openExternalLinksInBrowser: true,
     };
   }
@@ -239,6 +255,7 @@ const CreateNewRouteForm = ({ closeDrawer }: CreateNewRouteFormProps) => {
                     <option value="tradingview">TradingView</option>
                     <option value="spotify">Spotify</option>
                     <option value="slack">Slack</option>
+                    <option value="teams">Microsoft Teams</option>
                   </select>
                 </label>
                 <label className="text-sm flex flex-col gap-1">

@@ -25,6 +25,21 @@ const SLACK_HOSTS = [
   'slack-files.com',
 ];
 
+const MICROSOFT_TEAMS_HOSTS = [
+  'teams.microsoft.com',
+  'teams.live.com',
+  'login.microsoftonline.com',
+  'login.live.com',
+  'office.com',
+  'office.net',
+  'office365.com',
+  'microsoft.com',
+  'microsoftonline.com',
+  'msauth.net',
+  'msftauth.net',
+  'microsoft365.com',
+];
+
 const TRADINGVIEW_HOSTS = [        
   'tradingview.com',
   'sso.tradingview.com',
@@ -48,6 +63,7 @@ export {
   FACEBOOK_HOSTS, 
   TWITTER_HOSTS, 
   SLACK_HOSTS, 
+  MICROSOFT_TEAMS_HOSTS,
   TRADINGVIEW_HOSTS, 
   SPOTIFY_HOSTS 
 };

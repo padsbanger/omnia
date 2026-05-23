@@ -1,5 +1,5 @@
 import { JSX } from "react";
-import { BiLogoGmail } from "react-icons/bi";
+import { BiLogoGmail, BiLogoMicrosoftTeams } from "react-icons/bi";
 import { FaDiscord } from "react-icons/fa";
 import { FaFacebookMessenger } from "react-icons/fa";
 import { SiTradingview } from "react-icons/si";
@@ -15,6 +15,7 @@ const IconsDict: Record<string, JSX.Element> = {
   spotify: <FaSpotify />,
   twitter: <FaSquareXTwitter />,
   slack: <FaSlack />,
+  teams: <BiLogoMicrosoftTeams />,
 };
 
 export const WindowIcon = ({
