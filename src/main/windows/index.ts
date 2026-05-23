@@ -198,9 +198,34 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
     );
   };
 
+  const clearRouteRuntimeState = (routeId: string) => {
+    const unreadIndex = unreadCounts.findIndex((item) => item.routeId === routeId);
+    if (unreadIndex >= 0) unreadCounts.splice(unreadIndex, 1);
+
+    audioStates.delete(routeId);
+    emitRouteMemoryUsage(routeId, undefined);
+
+    const totalUnread = unreadCounts.reduce(
+      (total, item) => total + item.count,
+      0,
+    );
+    updateAppUnreadBadge(mainWindow, totalUnread);
+    mainWindow?.webContents.send('global-unread-update', {
+      unreadCounts,
+      total: totalUnread,
+    });
+  };
+
   const createViewForRoute = (route: Route) => {
     if (!runtimeRoutes.some((existingRoute) => existingRoute.id === route.id)) {
       runtimeRoutes.push(route);
+    }
+
+    const runtimeRoute = runtimeRoutes.find(
+      (existingRoute) => existingRoute.id === route.id,
+    );
+    if (runtimeRoute) {
+      runtimeRoute.isHibernated = false;
     }
 
     if (views.has(route.id)) {
@@ -369,14 +394,10 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
       }
     }
 
-    const unreadIndex = unreadCounts.findIndex(
-      (item) => item.routeId === route.id,
-    );
-    if (unreadIndex >= 0) unreadCounts.splice(unreadIndex, 1);
+    clearRouteRuntimeState(route.id);
 
     const routeIndex = runtimeRoutes.findIndex((r) => r.id === route.id);
     if (routeIndex >= 0) runtimeRoutes.splice(routeIndex, 1);
-    emitRouteMemoryUsage(route.id, undefined);
 
     try {
       await session.fromPartition(route.partition).clearStorageData();
@@ -384,16 +405,25 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
       console.error(`Failed to clear partition ${route.partition}`, error);
     }
 
-    const totalUnread = unreadCounts.reduce(
-      (total, item) => total + item.count,
-      0,
-    );
-    updateAppUnreadBadge(mainWindow, totalUnread);
-    mainWindow?.webContents.send('global-unread-update', {
-      unreadCounts,
-      total: totalUnread,
-    });
+    return true;
+  };
 
+  const hibernateRouteView = async (route: Route) => {
+    const view = views.get(route.id);
+    if (view) {
+      mainWindow?.contentView.removeChildView(view);
+      views.delete(route.id);
+      if (!view.webContents.isDestroyed()) {
+        view.webContents.close({ waitForBeforeUnload: false });
+      }
+    }
+
+    const runtimeRoute = runtimeRoutes.find((item) => item.id === route.id);
+    if (runtimeRoute) {
+      runtimeRoute.isHibernated = true;
+    }
+
+    clearRouteRuntimeState(route.id);
     return true;
   };
 
@@ -403,6 +433,7 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
     routes: runtimeRoutes,
     createViewForRoute,
     removeRouteView,
+    hibernateRouteView,
   });
 
   // Load main renderer (unchanged)

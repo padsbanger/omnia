@@ -17,9 +17,46 @@ const ManageRoutesDrawer = ({ closeDrawer }: ManageRoutesDrawerProps) => {
     activeTab,
     removeRoute,
     setActiveTab,
+    updateUnreadCount,
     windowLayout,
     setWindowLayout,
+    setRouteHibernation,
   } = useAppStore();
+
+  const handleToggleHibernation = async (routeId: string) => {
+    const route = routes.find((item) => item.id === routeId);
+    if (!route) return;
+
+    if (route.isHibernated) {
+      const restoredRoute = { ...route, isHibernated: false };
+      const result = await window.electronAPI.invoke("create-route-view", {
+        route: restoredRoute,
+      });
+
+      if (!result?.success) {
+        return;
+      }
+
+      setRouteHibernation(routeId, false);
+
+      if (activeTab === routeId && windowLayout === "single") {
+        void window.electronAPI.invoke("activate-tab", { route: restoredRoute });
+      }
+
+      return;
+    }
+
+    const result = await window.electronAPI.invoke("hibernate-route-view", {
+      route,
+    });
+
+    if (!result?.success) {
+      return;
+    }
+
+    setRouteHibernation(routeId, true);
+    updateUnreadCount(routeId, 0);
+  };
 
   const handleDeleteRoute = async (routeId: string) => {
     const route = routes.find((item) => item.id === routeId);
@@ -93,7 +130,9 @@ const ManageRoutesDrawer = ({ closeDrawer }: ManageRoutesDrawerProps) => {
                           <Label>{route.label}</Label>
                           <Description>{route.loadURL}</Description>
                           <Description>
-                            {route.memoryUsage
+                            {route.isHibernated
+                              ? "Status: hibernated"
+                              : route.memoryUsage
                               ? `Memory: ${formatMegabytes(route.memoryUsage.residentSet)}`
                               : "Memory: measuring..."}
                           </Description>
@@ -104,8 +143,24 @@ const ManageRoutesDrawer = ({ closeDrawer }: ManageRoutesDrawerProps) => {
                         <div className="flex flex-row mr-2 gap-2">
                           <Tooltip>
                             <Button
+                              variant="secondary"
+                              onClick={() => handleToggleHibernation(route.id)}
+                            >
+                              {route.isHibernated ? "Restore" : "Hibernate"}
+                            </Button>
+                            <Tooltip.Content>
+                              <p>
+                                {route.isHibernated
+                                  ? "Wake this route and recreate its webview."
+                                  : "Unload this route's webview to free memory."}
+                              </p>
+                            </Tooltip.Content>
+                          </Tooltip>
+                          <Tooltip>
+                            <Button
                               isIconOnly
                               variant="secondary"
+                              isDisabled={route.isHibernated}
                               onClick={() => {
                                 window.electronAPI.invoke("refresh-view", {
                                   route,
@@ -123,6 +178,7 @@ const ManageRoutesDrawer = ({ closeDrawer }: ManageRoutesDrawerProps) => {
                             <Button
                               isIconOnly
                               variant="secondary"
+                              isDisabled={route.isHibernated}
                               onClick={() => {
                                 window.electronAPI.invoke(
                                   "clear-single-partition",

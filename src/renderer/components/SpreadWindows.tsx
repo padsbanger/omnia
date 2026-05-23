@@ -32,7 +32,7 @@ const SpreadWindows = () => {
       const route = routes.find((item) => item.id === routeId);
       const container = containerRefs.current.get(routeId);
 
-      if (!route || !container) {
+      if (!route || !container || route.isHibernated) {
         return;
       }
 
@@ -60,7 +60,9 @@ const SpreadWindows = () => {
 
   useEffect(() => {
     routes.forEach((route) => {
-      window.electronAPI.invoke("create-route-view", { route });
+      if (!route.isHibernated) {
+        window.electronAPI.invoke("create-route-view", { route });
+      }
     });
   }, [routes]);
 
@@ -131,7 +133,13 @@ const SpreadWindows = () => {
               ? "h-full w-full border-l border-gray-700"
               : "h-full w-full"
           }
-        />
+        >
+          {route.isHibernated && (
+            <div className="flex h-full w-full items-center justify-center bg-gray-100 text-sm text-gray-500">
+              {route.label} is hibernated
+            </div>
+          )}
+        </div>
       ))}
     </div>
   );

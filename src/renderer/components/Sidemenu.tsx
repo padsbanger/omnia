@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { WindowIcon } from "./WindowIcon";
 import { IoMdAdd } from "react-icons/io";
+import { GiNightSleep } from "react-icons/gi";
 import { useEffect, useState, type DragEvent } from "react";
 import { Button, Drawer, Tooltip } from "@heroui/react";
 import { FaEdit } from 'react-icons/fa';
@@ -75,7 +76,7 @@ const Sidemenu = () => {
     if (activeDrawer || windowLayout !== "single") return;
 
     const activeRoute = routes.find((route) => route.id === activeTab);
-    if (!activeRoute) return;
+    if (!activeRoute || activeRoute.isHibernated) return;
 
     window.electronAPI.invoke("activate-tab", { route: activeRoute });
   }, [activeDrawer, activeTab, routes, windowLayout]);
@@ -201,13 +202,16 @@ const Sidemenu = () => {
             )}
             <Link
               to={route.path}
-              className={`w-full text-center py-3 px-2  flex flex-col gap-2 align-middle text-sm font-medium transition-colors duration-200 last:mb-0 relative cursor-move ${
+              className={`w-full relative text-center py-3 px-2  flex flex-col gap-2 align-middle text-sm font-medium transition-colors duration-200 last:mb-0 relative cursor-move ${
                 isActive
                   ? "bg-blue-500 text-white shadow-inner"
                   : "text-white hover:bg-gray-700"
               } ${draggedRouteId === route.id ? "opacity-60" : "opacity-100"}`}
             >
               <WindowIcon className="m-auto" icon={route.icon} />
+              {route.isHibernated ? (
+                <GiNightSleep className="absolute top-1 left-1 w-5 h-5 text-red" />
+              ) : null}
               {route.label}
               {unreadCounts[route.id] > 0 && (
                 <span

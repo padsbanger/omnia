@@ -14,6 +14,7 @@ type RegisterIpcHandlersParams = {
   routes: Route[];
   createViewForRoute: (route: Route) => WebContentsView | null;
   removeRouteView: (route: Route) => Promise<boolean>;
+  hibernateRouteView: (route: Route) => Promise<boolean>;
 };
 
 type Bounds = {
@@ -29,6 +30,7 @@ export default function registerIpcHandlers({
   routes,
   createViewForRoute,
   removeRouteView,
+  hibernateRouteView,
 }: RegisterIpcHandlersParams) {
   ipcMain.removeHandler("activate-tab");
   ipcMain.handle(
@@ -180,6 +182,23 @@ export default function registerIpcHandlers({
 
       if (routeIndex >= 0) {
         routes.splice(routeIndex, 1);
+      }
+
+      return { success: true };
+    },
+  );
+
+  ipcMain.removeHandler("hibernate-route-view");
+  ipcMain.handle(
+    "hibernate-route-view",
+    async (_event, { route }: { route: Route }) => {
+      if (!route || !route.id) {
+        return { success: false, reason: "Invalid route" };
+      }
+
+      const hibernated = await hibernateRouteView(route);
+      if (!hibernated) {
+        return { success: false, reason: "Failed to hibernate route view" };
       }
 
       return { success: true };

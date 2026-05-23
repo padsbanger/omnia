@@ -192,6 +192,7 @@ const CreateNewRouteForm = ({ closeDrawer }: CreateNewRouteFormProps) => {
       path: `/${routeId}`,
       loadURL: normalizedUrl,
       partition: `persist:user-${routeId}`,
+      isHibernated: false,
       internalHosts: navigationConfig.internalHosts,
       openExternalLinksInBrowser: navigationConfig.openExternalLinksInBrowser,
     };

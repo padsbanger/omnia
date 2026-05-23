@@ -13,6 +13,10 @@ const Window = ({ route }: WindowProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const { activeDrawer } = useAppStore();
   useEffect(() => {
+    if (route.isHibernated) {
+      return;
+    }
+
     window.electronAPI.invoke("activate-tab", { route }).then(() => {
       updateBounds();
     });
@@ -39,7 +43,7 @@ const Window = ({ route }: WindowProps) => {
       unsubscribe?.();
       resizeObserver.disconnect();
     };
-  }, [route.id]);
+  }, [route.id, route.isHibernated]);
 
   // Helper
   const updateBounds = () => {
@@ -62,8 +66,12 @@ const Window = ({ route }: WindowProps) => {
   };
 
   useEffect(() => {
+    if (route.isHibernated) {
+      return;
+    }
+
     updateBounds();
-  }, [route.id, activeDrawer]);
+  }, [route.id, route.isHibernated, activeDrawer]);
 
   const handleRefresh = (route: Route) => {
     window.electronAPI.invoke("refresh-view", { route });
@@ -95,7 +103,13 @@ const Window = ({ route }: WindowProps) => {
           overflow: "hidden",
           zIndex: 1,
         }}
-      ></div>
+      >
+        {route.isHibernated && (
+          <div className="flex h-full w-full items-center justify-center bg-gray-100 text-sm text-gray-500">
+            This route is hibernated. Restore it from Manage routes.
+          </div>
+        )}
+      </div>
     </>
   );
 };

@@ -13,6 +13,7 @@ export type Route = {
   label: string;
   loadURL: string;
   partition: string;
+  isHibernated?: boolean;
   internalHosts?: string[];
   openExternalLinksInBrowser?: boolean;
   memoryUsage?: RouteMemoryUsage;

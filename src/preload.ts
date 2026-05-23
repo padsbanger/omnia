@@ -11,6 +11,7 @@ const validChannels = [
   "open-external-link",
   "create-route-view",
   "delete-route-view",
+  "hibernate-route-view",
   "clear-single-partition",
   "main-window-resize",
   "open-settings",

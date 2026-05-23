@@ -16,7 +16,9 @@ function AppWithKeyboardShortcuts() {
   // notification counts to be gathered before the user visits each tab.
   useEffect(() => {
     routes.forEach((route) => {
-      window.electronAPI.invoke("create-route-view", { route });
+      if (!route.isHibernated) {
+        window.electronAPI.invoke("create-route-view", { route });
+      }
     });
   }, [routes]);
 

@@ -17,6 +17,7 @@ interface AppState {
   addRoute: (route: Route) => void;
   removeRoute: (routeId: string) => void;
   updateRoutesOrder: (routes: Array<Route>) => void;
+  setRouteHibernation: (routeId: string, isHibernated: boolean) => void;
   updateRouteMemoryUsage: (
     routeId: string,
     memoryUsage: RouteMemoryUsage | undefined,
@@ -59,6 +60,18 @@ export const useAppStore = create<AppState>()(
           };
         }),
       updateRoutesOrder: (routes) => set({ routes }),
+      setRouteHibernation: (routeId, isHibernated) =>
+        set((state) => ({
+          routes: state.routes.map((route) =>
+            route.id === routeId
+              ? {
+                  ...route,
+                  isHibernated,
+                  memoryUsage: isHibernated ? undefined : route.memoryUsage,
+                }
+              : route,
+          ),
+        })),
       updateRouteMemoryUsage: (routeId, memoryUsage) =>
         set((state) => ({
           routes: state.routes.map((route) =>
