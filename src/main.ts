@@ -10,6 +10,10 @@ import {
 } from "./main/settings";
 import { type StartupOpenMode } from "./common/settings";
 
+import packageJson from "../package.json";
+
+const WINDOWS_APP_USER_MODEL_ID = packageJson.build.appId;
+
 const createApplicationMenu = () => {
   const menu = Menu.buildFromTemplate([
     {
@@ -64,6 +68,10 @@ const createApplicationMenu = () => {
 
 if (started) {
   app.quit();
+}
+
+if (process.platform === "win32") {
+  app.setAppUserModelId(WINDOWS_APP_USER_MODEL_ID);
 }
 
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
