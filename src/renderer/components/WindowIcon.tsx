@@ -5,6 +5,7 @@ import { FaFacebookMessenger } from "react-icons/fa";
 import { SiTradingview } from "react-icons/si";
 import { FaSquareXTwitter } from "react-icons/fa6";
 import { FaSpotify } from 'react-icons/fa';
+import { FaSlack } from 'react-icons/fa6';
 
 const IconsDict: Record<string, JSX.Element> = {
   facebook: <FaFacebookMessenger />,
@@ -13,6 +14,7 @@ const IconsDict: Record<string, JSX.Element> = {
   tradingview: <SiTradingview />,
   spotify: <FaSpotify />,
   twitter: <FaSquareXTwitter />,
+  slack: <FaSlack />,
 };
 
 export const WindowIcon = ({

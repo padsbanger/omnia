@@ -3,7 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { Drawer, Button } from "@heroui/react";
 import { Route } from "../../common/routes";
 import { useAppStore } from "../store";
-import { GOOGLE_HOSTS, FACEBOOK_HOSTS, TWITTER_HOSTS } from "../../common/auth_hosts";
+import {
+  GOOGLE_HOSTS,
+  FACEBOOK_HOSTS,
+  TWITTER_HOSTS,
+  SLACK_HOSTS,
+  TRADINGVIEW_HOSTS,
+  SPOTIFY_HOSTS,
+} from "../../common/auth_hosts";
 
 type CreateNewRouteFormProps = {
   closeDrawer: () => void;
@@ -20,7 +27,8 @@ type ApplicationKey =
   | 'facebook'
   | 'tradingview'
   | 'twitter'
-  | 'spotify';
+  | 'spotify'
+  | 'slack';
 
 const APPLICATION_DEFAULTS: Record<
   ApplicationKey,
@@ -32,6 +40,7 @@ const APPLICATION_DEFAULTS: Record<
   tradingview: { label: 'TradingView', url: 'https://www.tradingview.com' },
   twitter: { label: 'Twitter', url: 'https://twitter.com/home' },
   spotify: { label: 'Spotify', url: 'https://open.spotify.com/home' },
+  slack: { label: 'Slack', url: 'https://app.slack.com/client' },
 };
 
 const buildRouteId = (label: string) =>
@@ -67,6 +76,13 @@ const getRouteNavigationConfig = (
     };
   }
 
+  if (icon === 'slack' || lowerHost.endsWith('slack.com')) {
+    return {
+      internalHosts: [...SLACK_HOSTS, ...GOOGLE_HOSTS],
+      openExternalLinksInBrowser: true,
+    };
+  }
+
   if (
     icon === 'facebook' ||
     lowerHost.endsWith('facebook.com') ||
@@ -80,13 +96,7 @@ const getRouteNavigationConfig = (
 
   if (icon === 'tradingview' || lowerHost.endsWith('tradingview.com')) {
     return {
-      internalHosts: [
-        'tradingview.com',
-        'sso.tradingview.com',
-        ...FACEBOOK_HOSTS,
-        ...TWITTER_HOSTS,
-        ...GOOGLE_HOSTS,
-      ],
+      internalHosts: TRADINGVIEW_HOSTS,
       openExternalLinksInBrowser: true,
     };
   }
@@ -105,15 +115,7 @@ const getRouteNavigationConfig = (
   // Added Spotify logic
   if (icon === 'spotify' || lowerHost.endsWith('spotify.com')) {
     return {
-      internalHosts: [
-        'open.spotify.com',
-        'spotify.com',
-        'spotifycdn.com',
-        'spotifyads.com',
-        ...FACEBOOK_HOSTS,
-        ...TWITTER_HOSTS,
-        ...GOOGLE_HOSTS,
-      ],
+      internalHosts: SPOTIFY_HOSTS,
       openExternalLinksInBrowser: true,
     };
   }
@@ -236,6 +238,7 @@ const CreateNewRouteForm = ({ closeDrawer }: CreateNewRouteFormProps) => {
                     <option value="twitter">Twitter</option>
                     <option value="tradingview">TradingView</option>
                     <option value="spotify">Spotify</option>
+                    <option value="slack">Slack</option>
                   </select>
                 </label>
                 <label className="text-sm flex flex-col gap-1">
