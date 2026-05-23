@@ -1,9 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Route } from "../../common/routes";
-import { useAppStore } from "../store";
 
 const SIDEMENU_WIDTH = 93;
-const DRAWER_WIDTH = 360;
 
 type WindowProps = {
   route: Route;
@@ -11,7 +9,6 @@ type WindowProps = {
 
 const Window = ({ route }: WindowProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { activeDrawer } = useAppStore();
   useEffect(() => {
     if (route.isHibernated) {
       return;
@@ -54,12 +51,9 @@ const Window = ({ route }: WindowProps) => {
     window.electronAPI.invoke("update-view-bounds", {
       route,
       bounds: {
-        x: Math.round(rect.left) + (activeDrawer ? DRAWER_WIDTH : 0),
+        x: Math.round(rect.left),
         y: Math.round(rect.top),
-        width: Math.max(
-          200,
-          Math.round(rect.width) - (activeDrawer ? DRAWER_WIDTH : 0),
-        ),
+        width: Math.max(200, Math.round(rect.width)),
         height: Math.round(rect.height),
       },
     });
@@ -71,7 +65,7 @@ const Window = ({ route }: WindowProps) => {
     }
 
     updateBounds();
-  }, [route.id, route.isHibernated, activeDrawer]);
+  }, [route.id, route.isHibernated]);
 
   const handleRefresh = (route: Route) => {
     window.electronAPI.invoke("refresh-view", { route });
