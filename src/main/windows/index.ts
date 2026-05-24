@@ -9,6 +9,7 @@ import {
 } from 'electron';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { deflateSync } from 'node:zlib';
 import {
   DrawerKind,
   DrawerStateSnapshot,
@@ -26,6 +27,7 @@ import createSplashWindow from './splashWindow';
 import getAppIconPath from '../../common/utils/getAppIconPath';
 import getInternalHostsForRoute from '../../common/utils/getInternalHostsForRoute';
 import isGoogleOAuthPopupUrl from '../../common/utils/isGoogleOAuthPopupUrl';
+import packageJson from '../../../package.json';
 
 const GOOGLE_OAUTH_POPUP_ICONS = new Set(['twitter', 'tradingview']);
 const WEBAUTHN_DISABLED_ICONS = new Set(['gmail', 'twitter']);
@@ -34,6 +36,7 @@ const DISABLED_WEBAUTHN_BLINK_FEATURES =
 const MEMORY_USAGE_POLL_INTERVAL_MS = 15000;
 const SIDEMENU_WIDTH = 93;
 const DRAWER_ANIMATION_DURATION_MS = 180;
+const WINDOWS_APP_USER_MODEL_ID = packageJson.build.appId;
 const DRAWER_WIDTHS: Record<DrawerKind, number> = {
   create: 360,
   manage: 360,
@@ -50,32 +53,136 @@ const getUnreadOverlayText = (count: number) => {
   return String(count);
 };
 
+const CRC32_TABLE = new Uint32Array(256);
+for (let i = 0; i < CRC32_TABLE.length; i += 1) {
+  let value = i;
+  for (let bit = 0; bit < 8; bit += 1) {
+    value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1;
+  }
+  CRC32_TABLE[i] = value >>> 0;
+}
+
+const crc32 = (buffer: Buffer) => {
+  let crc = 0xffffffff;
+  for (const byte of buffer) {
+    crc = CRC32_TABLE[(crc ^ byte) & 0xff] ^ (crc >>> 8);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+};
+
+const createPngChunk = (type: string, data = Buffer.alloc(0)) => {
+  const typeBuffer = Buffer.from(type, 'ascii');
+  const chunk = Buffer.alloc(12 + data.length);
+
+  chunk.writeUInt32BE(data.length, 0);
+  typeBuffer.copy(chunk, 4);
+  data.copy(chunk, 8);
+  chunk.writeUInt32BE(crc32(Buffer.concat([typeBuffer, data])), 8 + data.length);
+
+  return chunk;
+};
+
+const encodePng = (width: number, height: number, pixels: Uint8Array) => {
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width, 0);
+  header.writeUInt32BE(height, 4);
+  header[8] = 8;
+  header[9] = 6;
+
+  const scanlines = Buffer.alloc(height * (1 + width * 4));
+  for (let y = 0; y < height; y += 1) {
+    const scanlineOffset = y * (1 + width * 4);
+    const pixelOffset = y * width * 4;
+    scanlines[scanlineOffset] = 0;
+    Buffer.from(pixels.buffer, pixels.byteOffset + pixelOffset, width * 4).copy(
+      scanlines,
+      scanlineOffset + 1,
+    );
+  }
+
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    createPngChunk('IHDR', header),
+    createPngChunk('IDAT', deflateSync(scanlines)),
+    createPngChunk('IEND'),
+  ]);
+};
+
+const DIGIT_GLYPHS: Record<string, string[]> = {
+  '0': ['111', '101', '101', '101', '111'],
+  '1': ['010', '110', '010', '010', '111'],
+  '2': ['111', '001', '111', '100', '111'],
+  '3': ['111', '001', '111', '001', '111'],
+  '4': ['101', '101', '111', '001', '001'],
+  '5': ['111', '100', '111', '001', '111'],
+  '6': ['111', '100', '111', '101', '111'],
+  '7': ['111', '001', '010', '010', '010'],
+  '8': ['111', '101', '111', '101', '111'],
+  '9': ['111', '101', '111', '001', '111'],
+  '+': ['010', '010', '111', '010', '010'],
+};
+
 const createOverlayIcon = (count: number) => {
   const label = getUnreadOverlayText(count);
   if (!label) {
     return null;
   }
 
-  const fontSize = label.length > 2 ? 17 : 20;
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32">
-      <circle cx="16" cy="16" r="16" fill="#ef4444" />
-      <text
-        x="16"
-        y="17"
-        text-anchor="middle"
-        dominant-baseline="central"
-        font-family="Segoe UI, Arial, sans-serif"
-        font-size="${fontSize}"
-        font-weight="700"
-        fill="#ffffff"
-      >${label}</text>
-    </svg>
-  `;
+  const size = 16;
+  const pixels = new Uint8Array(size * size * 4);
 
-  return nativeImage.createFromDataURL(
-    `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`,
-  );
+  const setPixel = (x: number, y: number, color: [number, number, number, number]) => {
+    if (x < 0 || x >= size || y < 0 || y >= size) return;
+    const index = (y * size + x) * 4;
+    pixels[index] = color[0];
+    pixels[index + 1] = color[1];
+    pixels[index + 2] = color[2];
+    pixels[index + 3] = color[3];
+  };
+
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const dx = x + 0.5 - size / 2;
+      const dy = y + 0.5 - size / 2;
+      if (Math.sqrt(dx * dx + dy * dy) <= size / 2) {
+        setPixel(x, y, [239, 68, 68, 255]);
+      }
+    }
+  }
+
+  const scale = label.length > 2 ? 1 : 2;
+  const spacing = 1;
+  const glyphWidth = 3 * scale;
+  const glyphHeight = 5 * scale;
+  const labelWidth = label.length * glyphWidth + (label.length - 1) * spacing;
+  const startX = Math.floor((size - labelWidth) / 2);
+  const startY = Math.floor((size - glyphHeight) / 2);
+
+  Array.from(label).forEach((character, characterIndex) => {
+    const glyph = DIGIT_GLYPHS[character];
+    if (!glyph) return;
+
+    const characterX = startX + characterIndex * (glyphWidth + spacing);
+    glyph.forEach((row, rowIndex) => {
+      Array.from(row).forEach((cell, columnIndex) => {
+        if (cell !== '1') return;
+
+        for (let y = 0; y < scale; y += 1) {
+          for (let x = 0; x < scale; x += 1) {
+            setPixel(
+              characterX + columnIndex * scale + x,
+              startY + rowIndex * scale + y,
+              [255, 255, 255, 255],
+            );
+          }
+        }
+      });
+    });
+  });
+
+  const overlayIcon = nativeImage.createFromBuffer(encodePng(size, size, pixels));
+
+  return overlayIcon.isEmpty() ? null : overlayIcon;
 };
 
 const updateAppUnreadBadge = (
@@ -118,9 +225,20 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
     },
   });
 
+  if (process.platform === 'win32') {
+    mainWindow.setAppDetails({
+      appId: WINDOWS_APP_USER_MODEL_ID,
+      appIconPath: app.isPackaged ? process.execPath : getAppIconPath(),
+      appIconIndex: 0,
+      relaunchDisplayName: app.getName(),
+      relaunchCommand: process.execPath,
+    });
+  }
+
   const views = new Map<string, WebContentsView>();
   const runtimeRoutes: Route[] = [];
   const unreadCounts: Array<{ routeId: string; count: number }> = [];
+  let latestTotalUnread = 0;
   let drawerWindow: BrowserWindow | null = null;
   let drawerWindowTargetUrl: string | null = null;
   let drawerAnimationTimer: NodeJS.Timeout | null = null;
@@ -144,6 +262,11 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
       routeId,
       memoryUsage,
     });
+  };
+
+  const syncAppUnreadBadge = (totalUnread: number) => {
+    latestTotalUnread = totalUnread;
+    updateAppUnreadBadge(mainWindow, totalUnread);
   };
 
   const getWebContentsProcessMemoryInfo = async (view: WebContentsView) => {
@@ -231,7 +354,7 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
       (total, item) => total + item.count,
       0,
     );
-    updateAppUnreadBadge(mainWindow, totalUnread);
+    syncAppUnreadBadge(totalUnread);
     mainWindow?.webContents.send('global-unread-update', {
       unreadCounts,
       total: totalUnread,
@@ -506,7 +629,7 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
 
       const totalUnread = unreadCounts.reduce((a, b) => a + b.count, 0);
 
-      updateAppUnreadBadge(mainWindow, totalUnread);
+      syncAppUnreadBadge(totalUnread);
 
       mainWindow?.webContents.send('global-unread-update', {
         unreadCounts,
@@ -765,11 +888,13 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
     if (startMinimized) {
       mainWindow?.show();
       mainWindow?.minimize();
+      updateAppUnreadBadge(mainWindow, latestTotalUnread);
       return;
     }
 
     mainWindow?.show();
     mainWindow?.maximize();
+    updateAppUnreadBadge(mainWindow, latestTotalUnread);
   });
 
   let memoryUsageInterval: NodeJS.Timeout | null = null;
@@ -806,9 +931,15 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
   });
 
   mainWindow.once('show', () => {
+    updateAppUnreadBadge(mainWindow, latestTotalUnread);
+
     memoryUsageInterval = setInterval(() => {
       void syncAllRouteMemoryUsage();
     }, MEMORY_USAGE_POLL_INTERVAL_MS);
+  });
+
+  mainWindow.on('restore', () => {
+    updateAppUnreadBadge(mainWindow, latestTotalUnread);
   });
 
   return mainWindow;

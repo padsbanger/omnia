@@ -26,7 +26,9 @@ const createSplashWindow = () => {
     },
   });
 
-  const iconDataUrl = nativeImage.createFromPath(getAppIconPath()).toDataURL();
+  const iconDataUrl = nativeImage
+    .createFromPath(getAppIconPath('png'))
+    .toDataURL();
   const splashHtml = `<!DOCTYPE html>
   <html lang="en">
     <head>
