@@ -8,6 +8,11 @@ import {
 import { DrawerStateSnapshot, WindowLayout } from "../../common/drawer";
 import { Route } from "../../common/routes";
 import isExternalUrl from "../../common/utils/isExternalUrl";
+import {
+  getCurrentUser,
+  loginUser,
+  registerUser,
+} from "../authApi";
 
 type RegisterIpcHandlersParams = {
   getMainWindow: () => BrowserWindow | null;
@@ -38,6 +43,11 @@ type Bounds = {
   height: number;
 };
 
+type AuthCredentials = {
+  email: string;
+  password: string;
+};
+
 export default function registerIpcHandlers({
   getMainWindow,
   views,
@@ -53,6 +63,24 @@ export default function registerIpcHandlers({
   setRouteHibernationFromDrawer,
   setWindowLayoutFromDrawer,
 }: RegisterIpcHandlersParams) {
+  ipcMain.removeHandler("auth-register");
+  ipcMain.handle(
+    "auth-register",
+    async (_event, credentials: AuthCredentials) =>
+      registerUser(credentials),
+  );
+
+  ipcMain.removeHandler("auth-login");
+  ipcMain.handle(
+    "auth-login",
+    async (_event, credentials: AuthCredentials) => loginUser(credentials),
+  );
+
+  ipcMain.removeHandler("auth-me");
+  ipcMain.handle("auth-me", async (_event, { token }: { token: string }) =>
+    getCurrentUser(token),
+  );
+
   ipcMain.removeHandler("activate-tab");
   ipcMain.handle(
     "activate-tab",

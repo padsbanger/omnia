@@ -22,6 +22,7 @@ const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
     icon: path.resolve(__dirname, 'src', 'assets', 'icon'),
+    extraResource: [path.resolve(__dirname, 'src', 'assets', 'icon.ico')],
     // Castlabs' Widevine builds are published outside electron/electron releases.
     // Point packager downloads to the castlabs release mirror.
     download: {

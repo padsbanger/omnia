@@ -30,6 +30,9 @@ const validChannels = [
   "drawer-route-deleted",
   "drawer-route-hibernation-changed",
   "drawer-window-layout-changed",
+  "auth-register",
+  "auth-login",
+  "auth-me",
 ];
 
 contextBridge.exposeInMainWorld("electronAPI", {

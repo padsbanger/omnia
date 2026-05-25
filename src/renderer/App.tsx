@@ -7,7 +7,9 @@ import Window from "./components/Window";
 import SpreadWindows from "./components/SpreadWindows";
 import DrawerWindowApp from "./components/DrawerWindowApp";
 import Layout from "./components/Layout";
-import { useAppStore } from "./store";
+import AuthScreen from "./components/AuthScreen";
+import { getCurrentUser } from "./api/auth";
+import { useAppStore, useAuthStore } from "./store";
 
 const isDrawerKind = (value: string | null): value is DrawerKind =>
   value === "create" || value === "manage" || value === "settings";
@@ -207,6 +209,62 @@ function MainApp() {
   );
 }
 
+function AuthGate() {
+  const { clearSession, hasHydrated, setSession, token, user } =
+    useAuthStore();
+  const [isVerifying, setIsVerifying] = React.useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!hasHydrated) {
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    if (!token) {
+      setIsVerifying(false);
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    void getCurrentUser(token)
+      .then(({ user: currentUser }) => {
+        if (!isMounted) return;
+        setSession(token, currentUser);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        clearSession();
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsVerifying(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [clearSession, hasHydrated, setSession, token]);
+
+  if (!hasHydrated || isVerifying) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-slate-100 text-sm text-slate-600">
+        Loading...
+      </div>
+    );
+  }
+
+  if (!token || !user) {
+    return <AuthScreen />;
+  }
+
+  return <MainApp />;
+}
+
 function AppRoot() {
   const drawer = useMemo(() => {
     const value = new URLSearchParams(window.location.search).get("drawer");
@@ -223,7 +281,7 @@ function AppRoot() {
 
   return (
     <BrowserRouter>
-      <MainApp />
+      <AuthGate />
     </BrowserRouter>
   );
 }

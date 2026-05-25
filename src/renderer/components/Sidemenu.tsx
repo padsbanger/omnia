@@ -5,7 +5,8 @@ import { GiNightSleep } from "react-icons/gi";
 import { useEffect, useState, type DragEvent } from "react";
 import { Button, Tooltip } from "@heroui/react";
 import { FaEdit } from 'react-icons/fa';
-import { useAppStore } from "../store";
+import { FiLogOut } from "react-icons/fi";
+import { useAppStore, useAuthStore } from "../store";
 
 const Sidemenu = () => {
   const {
@@ -19,6 +20,7 @@ const Sidemenu = () => {
     setActiveDrawer,
     updateRoutesOrder,
   } = useAppStore();
+  const { clearSession, user } = useAuthStore();
   const [draggedRouteId, setDraggedRouteId] = useState<string | null>(null);
   const [dragOverRouteId, setDragOverRouteId] = useState<string | null>(null);
 
@@ -142,7 +144,7 @@ const Sidemenu = () => {
   }, [setActiveDrawer]);
 
   return (
-    <div className="w-23.25 h-full bg-gray-800 shadow-lg flex flex-col items-center">
+    <div className="relative w-23.25 h-full bg-gray-800 shadow-lg flex flex-col items-center">
       <Tooltip>
         <Button
           isIconOnly
@@ -204,7 +206,7 @@ const Sidemenu = () => {
         <Tooltip>
           <Button
             isIconOnly
-            className={"absolute bottom-6"}
+            className={"absolute bottom-20"}
             onClick={() => {
               setActiveDrawer("manage");
             }}
@@ -216,6 +218,18 @@ const Sidemenu = () => {
           </Tooltip.Content>
         </Tooltip>
       )}
+      <Tooltip>
+        <Button
+          isIconOnly
+          className="absolute bottom-6 text-white hover:bg-gray-700"
+          onClick={clearSession}
+        >
+          <FiLogOut />
+        </Button>
+        <Tooltip.Content>
+          <p>{user?.email ? `Sign out ${user.email}` : "Sign out"}</p>
+        </Tooltip.Content>
+      </Tooltip>
     </div>
   );
 };
