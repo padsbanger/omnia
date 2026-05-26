@@ -66,12 +66,12 @@ const SettingsDrawer = ({ closeDrawer }: SettingsDrawerProps) => {
   };
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="border-b px-5 py-4">
-        <h2 className="text-lg font-semibold">Settings</h2>
+    <div className="flex h-full flex-col bg-white text-slate-950">
+      <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
+        <h2 className="text-lg font-semibold text-slate-950">Settings</h2>
       </div>
       <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-5">
-        <section className="rounded-xl border border-default-200 px-4 py-4 shadow-sm">
+        <section className="rounded-lg border border-slate-200 bg-white px-4 py-4 shadow-sm">
           <div className="mb-4 flex flex-col gap-1">
             <Label>Startup and window behavior</Label>
             <Description>
@@ -89,7 +89,7 @@ const SettingsDrawer = ({ closeDrawer }: SettingsDrawerProps) => {
                   className={`flex cursor-pointer items-start gap-3 rounded-lg border px-4 py-3 transition ${
                     isSelected
                       ? "border-blue-500 bg-blue-50"
-                      : "border-default-200 hover:border-default-300"
+                      : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
                   } ${isSaving ? "opacity-70" : "opacity-100"}`}
                 >
                   <input
@@ -104,7 +104,7 @@ const SettingsDrawer = ({ closeDrawer }: SettingsDrawerProps) => {
                     <span className="text-sm font-medium">
                       {option.label}
                     </span>
-                    <span className="text-sm text-default-600">
+                    <span className="text-sm text-slate-500">
                       {option.description}
                     </span>
                   </div>
@@ -115,7 +115,11 @@ const SettingsDrawer = ({ closeDrawer }: SettingsDrawerProps) => {
         </section>
 
         <div className="mt-auto flex justify-end">
-          <Button type="button" onClick={closeDrawer}>
+          <Button
+            type="button"
+            className="border border-slate-200 bg-white text-slate-700"
+            onClick={closeDrawer}
+          >
             Close
           </Button>
         </div>

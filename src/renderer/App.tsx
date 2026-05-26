@@ -9,6 +9,8 @@ import DrawerWindowApp from "./components/DrawerWindowApp";
 import Layout from "./components/Layout";
 import AuthScreen from "./components/AuthScreen";
 import { getCurrentUser } from "./api/auth";
+import { listRoutes } from "./api/routes";
+import { createLocalRouteFromApiRoute } from "../common/routeMapping";
 import { useAppStore, useAuthStore } from "./store";
 
 const isDrawerKind = (value: string | null): value is DrawerKind =>
@@ -212,7 +214,11 @@ function MainApp() {
 function AuthGate() {
   const { clearSession, hasHydrated, setSession, token, user } =
     useAuthStore();
+  const updateRoutesOrder = useAppStore((state) => state.updateRoutesOrder);
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
+  const clearRoutes = useAppStore((state) => state.clearRoutes);
   const [isVerifying, setIsVerifying] = React.useState(true);
+  const [verifiedToken, setVerifiedToken] = React.useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -224,20 +230,42 @@ function AuthGate() {
     }
 
     if (!token) {
+      setVerifiedToken(null);
+      clearRoutes();
       setIsVerifying(false);
       return () => {
         isMounted = false;
       };
     }
 
+    setVerifiedToken(null);
+    setIsVerifying(true);
     void getCurrentUser(token)
-      .then(({ user: currentUser }) => {
+      .then(async ({ user: currentUser }) => {
         if (!isMounted) return;
         setSession(token, currentUser);
+
+        const { routes } = await listRoutes(token);
+        if (!isMounted) return;
+
+        const appRoutes = routes
+          .slice()
+          .sort((a, b) => a.order - b.order)
+          .map(createLocalRouteFromApiRoute);
+
+        updateRoutesOrder(appRoutes);
+        const activeTab = useAppStore.getState().activeTab;
+        if (!appRoutes.some((route) => route.id === activeTab)) {
+          setActiveTab(appRoutes[0]?.id ?? null);
+        }
+
+        setVerifiedToken(token);
       })
       .catch(() => {
         if (!isMounted) return;
+        setVerifiedToken(null);
         clearSession();
+        clearRoutes();
       })
       .finally(() => {
         if (isMounted) {
@@ -248,9 +276,17 @@ function AuthGate() {
     return () => {
       isMounted = false;
     };
-  }, [clearSession, hasHydrated, setSession, token]);
+  }, [
+    clearSession,
+    clearRoutes,
+    hasHydrated,
+    setActiveTab,
+    setSession,
+    token,
+    updateRoutesOrder,
+  ]);
 
-  if (!hasHydrated || isVerifying) {
+  if (!hasHydrated || isVerifying || (token && verifiedToken !== token)) {
     return (
       <div className="flex h-full w-full items-center justify-center bg-slate-100 text-sm text-slate-600">
         Loading...

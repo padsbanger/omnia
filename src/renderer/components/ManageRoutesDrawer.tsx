@@ -129,25 +129,25 @@ const ManageRoutesDrawer = ({
   }, 0);
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="border-b px-5 py-4">
-        <h2 className="text-lg font-semibold">Manage routes</h2>
+    <div className="flex h-full flex-col bg-white text-slate-950">
+      <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
+        <h2 className="text-lg font-semibold text-slate-950">Manage routes</h2>
       </div>
       <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
         {routes.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-gray-300 px-2 py-6 text-sm text-gray-500">
+          <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-6 text-sm text-slate-500">
             No routes yet.
           </div>
         ) : (
           routes.map((route) => (
             <div
-              className="flex flex-col p-3 rounded-md border"
+              className="flex flex-col rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
               key={route.id}
             >
               <div className="flex flex-row gap-2">
                 <WindowIcon icon={route.icon} />
                 <div className="flex flex-col">
-                  <Label>{route.label}</Label>
+                  <Label className="text-blackTotal memory usage: ">{route.label}</Label>
                   <Description>{route.loadURL}</Description>
                   <Description>
                     {route.isHibernated
@@ -158,12 +158,12 @@ const ManageRoutesDrawer = ({
                   </Description>
                 </div>
               </div>
-              <div className="flex flew-row gap-3 mt-3 align-baseline justify-start items-center">
+              <div className="mt-3 flex flex-row items-center justify-start gap-3 align-baseline">
                 <Label>Actions: </Label>
                 <div className="flex flex-row mr-2 gap-2">
                   <Tooltip>
                     <Button
-                      variant="secondary"
+                      className="border border-slate-200 bg-slate-50 text-slate-700"
                       onClick={() => handleToggleHibernation(route.id)}
                     >
                       {route.isHibernated ? "Restore" : "Hibernate"}
@@ -179,7 +179,7 @@ const ManageRoutesDrawer = ({
                   <Tooltip>
                     <Button
                       isIconOnly
-                      variant="secondary"
+                      className="border border-slate-200 bg-slate-50 text-slate-700"
                       isDisabled={route.isHibernated}
                       onClick={() => {
                         window.electronAPI.invoke("refresh-view", {
@@ -197,7 +197,7 @@ const ManageRoutesDrawer = ({
                   <Tooltip>
                     <Button
                       isIconOnly
-                      variant="secondary"
+                      className="border border-slate-200 bg-slate-50 text-slate-700"
                       isDisabled={route.isHibernated}
                       onClick={() => {
                         window.electronAPI.invoke(
@@ -215,7 +215,7 @@ const ManageRoutesDrawer = ({
                   <Tooltip>
                     <Button
                       isIconOnly
-                      variant="secondary"
+                      className="border border-slate-200 bg-slate-50 text-slate-700"
                       onClick={() => handleDeleteRoute(route.id)}
                     >
                       <RiCloseFill />
@@ -230,7 +230,7 @@ const ManageRoutesDrawer = ({
           ))
         )}
         {routes.length > 0 && (
-          <div className="mt-2 flex items-center justify-between gap-3 rounded-md border p-3">
+          <div className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
             <div className="flex flex-col">
               <Label>Window layout</Label>
               <Description>
@@ -240,8 +240,10 @@ const ManageRoutesDrawer = ({
             <div className="flex gap-2">
               <Button
                 type="button"
-                variant={
-                  windowLayout === "spread" ? "primary" : "secondary"
+                className={
+                  windowLayout === "spread"
+                    ? "bg-blue-600 text-white"
+                    : "border border-slate-200 bg-white text-slate-700"
                 }
                 onClick={() => {
                   const nextLayout =
@@ -258,8 +260,10 @@ const ManageRoutesDrawer = ({
               </Button>
               <Button
                 type="button"
-                variant={
-                  windowLayout === "matrix" ? "primary" : "secondary"
+                className={
+                  windowLayout === "matrix"
+                    ? "bg-blue-600 text-white"
+                    : "border border-slate-200 bg-white text-slate-700"
                 }
                 onClick={() => {
                   const nextLayout =
@@ -277,13 +281,17 @@ const ManageRoutesDrawer = ({
             </div>
           </div>
         )}
-        <div className="mt-2 flex items-center justify-between gap-3 rounded-md border p-3">
+        <div className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
           <div className="flex flex-col">
-            <Label>Total memory usage: {formatGigabytes(totalMemoryUsage)}</Label>
+            <Label className="text-black">Total memory usage: {formatGigabytes(totalMemoryUsage)}</Label>
           </div>
         </div>
         <div className="mt-auto flex justify-end">
-          <Button type="button" onClick={closeDrawer}>
+          <Button
+            type="button"
+            className="border border-slate-200 bg-white text-slate-700"
+            onClick={closeDrawer}
+          >
             Close
           </Button>
         </div>

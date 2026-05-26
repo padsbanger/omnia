@@ -153,10 +153,12 @@ const CreateNewRouteForm = ({
   const [label, setLabel] = useState("");
   const [application, setApplication] = useState<ApplicationKey>("gmail");
   const [url, setUrl] = useState(APPLICATION_DEFAULTS.gmail.url);
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const canSubmit = useMemo(
-    () => label.trim().length > 0 && url.trim().length > 0,
-    [label, url],
+    () => label.trim().length > 0 && url.trim().length > 0 && !isSubmitting,
+    [isSubmitting, label, url],
   );
 
   const handleApplicationChange = (value: ApplicationKey) => {
@@ -183,8 +185,12 @@ const CreateNewRouteForm = ({
     try {
       hostname = new URL(normalizedUrl).hostname;
     } catch {
+      setError("Enter a valid URL.");
       return;
     }
+
+    setError(null);
+    setIsSubmitting(true);
 
     const navigationConfig = getRouteNavigationConfig(application, hostname);
 
@@ -201,50 +207,58 @@ const CreateNewRouteForm = ({
       openExternalLinksInBrowser: navigationConfig.openExternalLinksInBrowser,
     };
 
-    if (onCreateRoute) {
-      const created = await onCreateRoute(route);
-      if (created) {
+    try {
+      if (onCreateRoute) {
+        const created = await onCreateRoute(route);
+        if (created) {
+          closeDrawer();
+        }
+        return;
+      }
+
+      const result = await window.electronAPI.invoke("create-route-view", {
+        route,
+      });
+
+      if (result?.success) {
+        addRoute(route);
+        setActiveTab(route.id);
+        navigate(route.path);
+        setActiveDrawer(null);
         closeDrawer();
       }
-      return;
-    }
-
-    const result = await window.electronAPI.invoke("create-route-view", {
-      route,
-    });
-
-    if (result?.success) {
-      addRoute(route);
-      setActiveTab(route.id);
-      navigate(route.path);
-      setActiveDrawer(null);
-      closeDrawer();
+    } catch (nextError) {
+      setError(
+        nextError instanceof Error ? nextError.message : "Failed to save route.",
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="border-b px-5 py-4">
-        <h2 className="text-lg font-semibold">Add route</h2>
+    <div className="flex h-full flex-col bg-white text-slate-950">
+      <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
+        <h2 className="text-lg font-semibold text-slate-950">Add route</h2>
       </div>
       <form
-        className="flex flex-1 flex-col gap-3 p-5"
+        className="flex flex-1 flex-col gap-4 p-5"
         onSubmit={handleCreateRoute}
       >
-        <label className="text-sm flex flex-col gap-1">
+        <label className="flex flex-col gap-1 text-sm font-medium text-slate-800">
           Label
           <input
-            className="border rounded px-2 py-1"
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-950 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             value={label}
             onChange={(event) => setLabel(event.target.value)}
             placeholder="Work Gmail"
             required
           />
         </label>
-        <label className="text-sm flex flex-col gap-1">
+        <label className="flex flex-col gap-1 text-sm font-medium text-slate-800">
           Application
           <select
-            className="border rounded px-2 py-1"
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-950 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             value={application}
             onChange={(event) =>
               handleApplicationChange(event.target.value as ApplicationKey)
@@ -260,22 +274,35 @@ const CreateNewRouteForm = ({
             <option value="teams">Microsoft Teams</option>
           </select>
         </label>
-        <label className="text-sm flex flex-col gap-1">
+        <label className="flex flex-col gap-1 text-sm font-medium text-slate-800">
           URL
           <input
-            className="border rounded px-2 py-1"
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-950 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             value={url}
             onChange={(event) => setUrl(event.target.value)}
             placeholder="mail.google.com"
             required
           />
         </label>
+        {error && (
+          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {error}
+          </div>
+        )}
         <div className="mt-auto flex gap-2 justify-end pt-2">
-          <Button type="button" onClick={closeDrawer}>
+          <Button
+            type="button"
+            className="border border-slate-200 bg-white text-slate-700"
+            onClick={closeDrawer}
+          >
             Cancel
           </Button>
-          <Button type="submit" isDisabled={!canSubmit}>
-            Save route
+          <Button
+            type="submit"
+            className="bg-blue-600 font-medium text-white"
+            isDisabled={!canSubmit}
+          >
+            {isSubmitting ? "Saving..." : "Save route"}
           </Button>
         </div>
       </form>

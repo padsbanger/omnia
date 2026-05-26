@@ -7,6 +7,9 @@ import {
 import CreateNewRouteForm from "./CreateNewRouteForm";
 import ManageRoutesDrawer from "./ManageRoutesDrawer";
 import SettingsDrawer from "./SettingsDrawer";
+import { createRoute, deleteRoute } from "../api/routes";
+import { createLocalRouteFromApiRoute } from "../../common/routeMapping";
+import { useAuthStore } from "../store";
 
 const isDrawerKind = (value: string | null): value is DrawerKind =>
   value === "create" || value === "manage" || value === "settings";
@@ -17,6 +20,7 @@ const DrawerWindowApp = () => {
     return isDrawerKind(value) ? value : null;
   }, []);
   const [state, setState] = useState<DrawerStateSnapshot | null>(null);
+  const token = useAuthStore((authState) => authState.token);
 
   useEffect(() => {
     void window.electronAPI
@@ -45,11 +49,26 @@ const DrawerWindowApp = () => {
     return (
       <CreateNewRouteForm
         closeDrawer={closeDrawer}
-        onCreateRoute={(route) =>
-          window.electronAPI
-            .invoke("drawer-create-route", { route })
-            .then((result) => Boolean(result?.success))
-        }
+        onCreateRoute={async (route) => {
+          if (!token) {
+            return false;
+          }
+
+          const { route: apiRoute } = await createRoute(token, {
+            name: route.label,
+            url: route.loadURL,
+            icon: route.icon,
+            order: state?.routes.length ?? undefined,
+            metadata: {
+              openExternalLinksInBrowser: route.openExternalLinksInBrowser,
+            },
+          });
+
+          const localRoute = createLocalRouteFromApiRoute(apiRoute);
+          return window.electronAPI
+            .invoke("drawer-create-route", { route: localRoute })
+            .then((result) => Boolean(result?.success));
+        }}
       />
     );
   }
@@ -69,6 +88,9 @@ const DrawerWindowApp = () => {
       activeTab={state.activeTab}
       windowLayout={state.windowLayout}
       onDeleteRoute={async (routeId) => {
+        if (token) {
+          await deleteRoute(token, routeId);
+        }
         await window.electronAPI.invoke("drawer-delete-route", { routeId });
         await refreshState();
       }}

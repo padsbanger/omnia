@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Route } from "../../common/routes";
 
-const SIDEMENU_WIDTH = 93;
+const SIDEMENU_WIDTH = 100;
 
 type WindowProps = {
   route: Route;

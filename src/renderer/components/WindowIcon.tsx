@@ -6,6 +6,7 @@ import { SiTradingview } from "react-icons/si";
 import { FaSquareXTwitter } from "react-icons/fa6";
 import { FaSpotify } from 'react-icons/fa';
 import { FaSlack } from 'react-icons/fa6';
+import { FiLink } from "react-icons/fi";
 
 const IconsDict: Record<string, JSX.Element> = {
   facebook: <FaFacebookMessenger />,
@@ -16,6 +17,7 @@ const IconsDict: Record<string, JSX.Element> = {
   twitter: <FaSquareXTwitter />,
   slack: <FaSlack />,
   teams: <BiLogoMicrosoftTeams />,
+  link: <FiLink />,
 };
 
 export const WindowIcon = ({
@@ -25,5 +27,9 @@ export const WindowIcon = ({
   icon: string;
   className?: string;
 }) => {
-  return <span className={`text-3xl ${className}`}>{IconsDict[icon]}</span>;
+  return (
+    <span className={`text-3xl ${className}`}>
+      {IconsDict[icon] ?? IconsDict.link}
+    </span>
+  );
 };

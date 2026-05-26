@@ -13,6 +13,11 @@ import {
   loginUser,
   registerUser,
 } from "../authApi";
+import {
+  createRoute,
+  deleteRoute,
+  listRoutes,
+} from "../routeApi";
 
 type RegisterIpcHandlersParams = {
   getMainWindow: () => BrowserWindow | null;
@@ -48,6 +53,8 @@ type AuthCredentials = {
   password: string;
 };
 
+type CreateRoutePayload = Parameters<typeof createRoute>[1];
+
 export default function registerIpcHandlers({
   getMainWindow,
   views,
@@ -81,6 +88,44 @@ export default function registerIpcHandlers({
     getCurrentUser(token),
   );
 
+  ipcMain.removeHandler("routes-list");
+  ipcMain.handle("routes-list", async (_event, { token }: { token: string }) =>
+    listRoutes(token),
+  );
+
+  ipcMain.removeHandler("routes-create");
+  ipcMain.handle(
+    "routes-create",
+    async (
+      _event,
+      {
+        token,
+        route,
+      }: {
+        token: string;
+        route: CreateRoutePayload;
+      },
+    ) => createRoute(token, route),
+  );
+
+  ipcMain.removeHandler("routes-delete");
+  ipcMain.handle(
+    "routes-delete",
+    async (
+      _event,
+      {
+        token,
+        routeId,
+      }: {
+        token: string;
+        routeId: string;
+      },
+    ) => {
+      await deleteRoute(token, routeId);
+      return { success: true };
+    },
+  );
+
   ipcMain.removeHandler("activate-tab");
   ipcMain.handle(
     "activate-tab",
@@ -101,10 +146,11 @@ export default function registerIpcHandlers({
       mainWindow.contentView.addChildView(view);
 
       const contentBounds = mainWindow.getContentBounds();
+      const sidemenuWidth = 108;
       view.setBounds({
-        x: 93,
+        x: sidemenuWidth,
         y: 0,
-        width: Math.max(0, contentBounds.width - 93),
+        width: Math.max(0, contentBounds.width - sidemenuWidth),
         height: contentBounds.height,
       });
 
@@ -224,6 +270,27 @@ export default function registerIpcHandlers({
       return { success: true };
     },
   );
+
+  ipcMain.removeHandler("clear-route-views");
+  ipcMain.handle("clear-route-views", async () => {
+    const mainWindow = getMainWindow();
+    const routesSnapshot = [...routes];
+
+    for (const route of routesSnapshot) {
+      await removeRouteView(route);
+    }
+
+    routes.splice(0, routes.length);
+    mainWindow?.webContents.send("tabId-change", { tabId: null });
+    await syncDrawerState({
+      ...getDrawerState(),
+      activeDrawer: null,
+      activeTab: null,
+      routes: [],
+    });
+
+    return { success: true };
+  });
 
   ipcMain.removeHandler("hibernate-route-view");
   ipcMain.handle(

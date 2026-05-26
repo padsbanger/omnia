@@ -14,12 +14,94 @@ body {
     margin: 0;
   }
   
-  body {
-    width: 100vw;
+body {
+  width: 100vw;
   height: 100vh;
   min-width: 100vw;
   min-height: 100vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+.omnia-auth-background {
+  background:
+    linear-gradient(135deg, rgba(38, 235, 232, 0.18) 0%, transparent 30%),
+    linear-gradient(112deg, transparent 18%, rgba(42, 100, 255, 0.2) 42%, rgba(124, 72, 255, 0.18) 63%, transparent 82%),
+    linear-gradient(155deg, transparent 28%, rgba(231, 43, 255, 0.22) 70%, transparent 100%),
+    #0c0b18;
+  background-repeat: no-repeat;
+  background-size: cover, cover, cover, auto;
+  animation: omnia-auth-background-drift 64s ease-in-out infinite alternate;
+}
+
+.omnia-auth-background::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background:
+    linear-gradient(105deg, transparent 0%, rgba(97, 240, 255, 0.12) 42%, rgba(231, 43, 255, 0.08) 50%, transparent 62%),
+    linear-gradient(180deg, rgba(23, 22, 48, 0.18), rgba(8, 8, 18, 0.7));
+  background-position: -120% 0, 0 0;
+  background-size: 240% 100%, 100% 100%;
+  animation: omnia-auth-sheen 14s linear infinite;
+}
+
+.omnia-auth-particle {
+  position: absolute;
+  width: var(--particle-size);
+  height: var(--particle-size);
+  border-radius: 9999px;
+  background: var(--particle-color);
+  box-shadow: 0 0 14px var(--particle-color);
+  opacity: 0;
+  transform: translate3d(0, 0, 0);
+  animation-name: omnia-auth-particle-flight;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes omnia-auth-background-drift {
+  from {
+    background-position: 0% 0%, 100% 20%, 0% 100%, 0 0;
+  }
+
+  to {
+    background-position: 100% 100%, 20% 80%, 100% 0%, 0 0;
+  }
+}
+
+@keyframes omnia-auth-sheen {
+  from {
+    background-position: -120% 0, 0 0;
+  }
+
+  to {
+    background-position: 120% 0, 0 0;
+  }
+}
+
+@keyframes omnia-auth-particle-flight {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.65);
+  }
+
+  12% {
+    opacity: 0.62;
+  }
+
+  72% {
+    opacity: 0.46;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(
+        var(--particle-travel-x),
+        var(--particle-travel-y),
+        0
+      )
+      scale(1.15);
+  }
 }

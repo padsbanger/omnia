@@ -33,7 +33,7 @@ const WEBAUTHN_DISABLED_ICONS = new Set(['gmail', 'twitter']);
 const DISABLED_WEBAUTHN_BLINK_FEATURES =
   'WebAuth,WebAuthenticationConditionalUI';
 const MEMORY_USAGE_POLL_INTERVAL_MS = 15000;
-const SIDEMENU_WIDTH = 93;
+const SIDEMENU_WIDTH = 100;
 const DRAWER_ANIMATION_DURATION_MS = 180;
 const WINDOWS_APP_USER_MODEL_ID = packageJson.build.appId;
 const DRAWER_WIDTHS: Record<DrawerKind, number> = {

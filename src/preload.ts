@@ -11,6 +11,7 @@ const validChannels = [
   "open-external-link",
   "create-route-view",
   "delete-route-view",
+  "clear-route-views",
   "hibernate-route-view",
   "sync-drawer-state",
   "get-drawer-state",
@@ -33,6 +34,9 @@ const validChannels = [
   "auth-register",
   "auth-login",
   "auth-me",
+  "routes-list",
+  "routes-create",
+  "routes-delete",
 ];
 
 contextBridge.exposeInMainWorld("electronAPI", {

@@ -18,6 +18,7 @@ const Sidemenu = () => {
     routes,
     windowLayout,
     setActiveDrawer,
+    clearRoutes,
     updateRoutesOrder,
   } = useAppStore();
   const { clearSession, user } = useAuthStore();
@@ -65,6 +66,15 @@ const Sidemenu = () => {
     setDragOverRouteId(null);
   };
 
+  const handleLogout = async () => {
+    await window.electronAPI.invoke("clear-route-views").catch((error) => {
+      console.error("Failed to clear route views on logout", error);
+    });
+    clearRoutes();
+    clearSession();
+    document.title = "Omnia";
+  };
+
   useEffect(() => {
     if (windowLayout !== "single") return;
 
@@ -77,7 +87,7 @@ const Sidemenu = () => {
   useEffect(() => {
     const unsubscribe = window.electronAPI.onFromMain(
       "tabId-change",
-      (data: { tabId: string }) => {
+      (data: { tabId: string | null }) => {
         setActiveTab(data.tabId);
       },
     );
@@ -144,11 +154,11 @@ const Sidemenu = () => {
   }, [setActiveDrawer]);
 
   return (
-    <div className="relative w-23.25 h-full bg-gray-800 shadow-lg flex flex-col items-center">
+    <div className="relative flex h-full w-[100px] flex-col items-center border-r border-slate-800 bg-slate-950 shadow-lg">
       <Tooltip>
         <Button
           isIconOnly
-          className="my-6 text-white hover:bg-gray-700"
+          className="my-6 bg-slate-900 text-slate-100 hover:bg-slate-800"
           onClick={() => {
             setActiveDrawer("create");
           }}
@@ -178,8 +188,8 @@ const Sidemenu = () => {
               to={route.path}
               className={`w-full relative text-center py-3 px-2  flex flex-col gap-2 align-middle text-sm font-medium transition-colors duration-200 last:mb-0 relative cursor-move ${
                 isActive
-                  ? "bg-blue-500 text-white shadow-inner"
-                  : "text-white hover:bg-gray-700"
+                  ? "bg-blue-600 text-white shadow-inner"
+                  : "text-slate-200 hover:bg-slate-900 hover:text-white"
               } ${draggedRouteId === route.id ? "opacity-60" : "opacity-100"}`}
             >
               <WindowIcon className="m-auto" icon={route.icon} />
@@ -206,7 +216,7 @@ const Sidemenu = () => {
         <Tooltip>
           <Button
             isIconOnly
-            className={"absolute bottom-20"}
+            className="absolute bottom-20 border border-slate-700 bg-slate-900 text-slate-100 hover:bg-slate-800"
             onClick={() => {
               setActiveDrawer("manage");
             }}
@@ -221,8 +231,8 @@ const Sidemenu = () => {
       <Tooltip>
         <Button
           isIconOnly
-          className="absolute bottom-6 text-white hover:bg-gray-700"
-          onClick={clearSession}
+          className="absolute bottom-6 border border-slate-700 bg-slate-900 text-slate-100 hover:bg-slate-800"
+          onClick={handleLogout}
         >
           <FiLogOut />
         </Button>

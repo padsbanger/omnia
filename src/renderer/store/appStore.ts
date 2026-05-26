@@ -16,6 +16,7 @@ interface AppState {
   setWindowLayout: (layout: "single" | "spread" | "matrix") => void;
   addRoute: (route: Route) => void;
   removeRoute: (routeId: string) => void;
+  clearRoutes: () => void;
   updateRoutesOrder: (routes: Array<Route>) => void;
   setRouteHibernation: (routeId: string, isHibernated: boolean) => void;
   updateRouteMemoryUsage: (
@@ -58,6 +59,13 @@ export const useAppStore = create<AppState>()(
             unreadCounts: nextUnreadCounts,
             activeTab: state.activeTab === routeId ? null : state.activeTab,
           };
+        }),
+      clearRoutes: () =>
+        set({
+          routes: [],
+          activeTab: null,
+          unreadCounts: {},
+          activeDrawer: null,
         }),
       updateRoutesOrder: (routes) => set({ routes }),
       setRouteHibernation: (routeId, isHibernated) =>
