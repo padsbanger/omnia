@@ -27,6 +27,10 @@ import getInternalHostsForRoute from '../../common/utils/getInternalHostsForRout
 import isGoogleOAuthPopupUrl from '../../common/utils/isGoogleOAuthPopupUrl';
 import packageJson from '../../../package.json';
 import { updateAppUnreadBadge } from './appUnreadBadge';
+import {
+  createUnreadTrackerScript,
+  parseUnreadTrackerMessage,
+} from './unreadTracker';
 
 const GOOGLE_OAUTH_POPUP_ICONS = new Set(['twitter', 'tradingview']);
 const WEBAUTHN_DISABLED_ICONS = new Set(['gmail', 'twitter']);
@@ -80,7 +84,7 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
 
   const views = new Map<string, WebContentsView>();
   const runtimeRoutes: Route[] = [];
-  const unreadCounts: Array<{ routeId: string; count: number }> = [];
+  const unreadCounts: Array<{ routeId: string; count: number; source?: string }> = [];
   let latestTotalUnread = 0;
   let drawerWindow: BrowserWindow | null = null;
   let drawerWindowTargetUrl: string | null = null;
@@ -110,6 +114,50 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
   const syncAppUnreadBadge = (totalUnread: number) => {
     latestTotalUnread = totalUnread;
     updateAppUnreadBadge(mainWindow, totalUnread);
+  };
+
+  const getUnreadSourcePriority = (source: string) => {
+    if (source.endsWith('-dom')) return 2;
+    if (source === 'title') return 1;
+    return 0;
+  };
+
+  const setRouteUnreadCount = (
+    routeId: string,
+    count: number,
+    source: string,
+  ) => {
+    const normalizedCount = Math.max(0, Math.floor(count));
+    const existing = unreadCounts.find((item) => item.routeId === routeId);
+
+    if (
+      existing &&
+      getUnreadSourcePriority(existing.source ?? '') >
+        getUnreadSourcePriority(source)
+    ) {
+      return;
+    }
+
+    if (existing) {
+      existing.count = normalizedCount;
+      existing.source = source;
+    } else {
+      unreadCounts.push({ routeId, count: normalizedCount, source });
+    }
+
+    const totalUnread = unreadCounts.reduce((total, item) => total + item.count, 0);
+
+    syncAppUnreadBadge(totalUnread);
+
+    mainWindow?.webContents.send('global-unread-update', {
+      unreadCounts,
+      total: totalUnread,
+    });
+    mainWindow?.webContents.send('unread-update', {
+      routeId,
+      count: normalizedCount,
+      source,
+    });
   };
 
   const getWebContentsProcessMemoryInfo = async (view: WebContentsView) => {
@@ -463,25 +511,43 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
       }
     });
 
-    webContents.on('page-title-updated', (e: any, title: string) => {
+    const injectUnreadTracker = () => {
+      if (webContents.isDestroyed()) {
+        return;
+      }
+
+      webContents
+        .executeJavaScript(createUnreadTrackerScript(), false)
+        .catch((error) => {
+          console.error(`Failed to inject unread tracker for ${route.id}`, error);
+        });
+    };
+
+    webContents.on('console-message', (_event: any, detailsOrLevel: any, message?: string) => {
+      const consoleMessage =
+        typeof detailsOrLevel?.message === 'string'
+          ? detailsOrLevel.message
+          : message;
+
+      if (typeof consoleMessage !== 'string') {
+        return;
+      }
+
+      const unreadUpdate = parseUnreadTrackerMessage(consoleMessage);
+
+      if (!unreadUpdate) {
+        return;
+      }
+
+      setRouteUnreadCount(route.id, unreadUpdate.count, unreadUpdate.source);
+    });
+
+    webContents.on('dom-ready', injectUnreadTracker);
+    webContents.on('did-finish-load', injectUnreadTracker);
+
+    webContents.on('page-title-updated', (_event: any, title: string) => {
       const unread = extractUnreadFromTitle(title);
-
-      const existing = unreadCounts.find((u) => u.routeId === route.id);
-      if (existing) existing.count = unread;
-      else unreadCounts.push({ routeId: route.id, count: unread });
-
-      const totalUnread = unreadCounts.reduce((a, b) => a + b.count, 0);
-
-      syncAppUnreadBadge(totalUnread);
-
-      mainWindow?.webContents.send('global-unread-update', {
-        unreadCounts,
-        total: totalUnread,
-      });
-      mainWindow?.webContents.send('unread-update', {
-        routeId: route.id,
-        count: unread,
-      });
+      setRouteUnreadCount(route.id, unread, 'title');
     });
 
     const openInExternalBrowser = (url: string) => {
