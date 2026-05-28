@@ -147,7 +147,7 @@ const ManageRoutesDrawer = ({
               <div className="flex flex-row gap-2">
                 <WindowIcon icon={route.icon} />
                 <div className="flex flex-col">
-                  <Label className="text-blackTotal memory usage: ">{route.label}</Label>
+                  <Label className="text-black">{route.label}</Label>
                   <Description>{route.loadURL}</Description>
                   <Description>
                     {route.isHibernated

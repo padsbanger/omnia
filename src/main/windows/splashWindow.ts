@@ -1,5 +1,4 @@
-import { nativeImage } from "electron";
-import { BrowserWindow } from "electron/main";
+import { BrowserWindow, nativeImage } from "electron";
 
 import getAppIconPath from "../../common/utils/getAppIconPath";
 
