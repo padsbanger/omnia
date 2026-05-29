@@ -1,6 +1,12 @@
 import { createRoot } from "react-dom/client";
 import React, { useEffect, useMemo, useRef } from "react";
-import { BrowserRouter, Route, Routes, useNavigate } from "react-router-dom";
+import {
+  HashRouter,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import { DrawerStateSnapshot, DrawerKind, WindowLayout } from "../common/drawer";
 import { Route as AppRoute } from "../common/routes";
 import Window from "./components/Window";
@@ -18,6 +24,7 @@ const isDrawerKind = (value: string | null): value is DrawerKind =>
 
 function MainApp() {
   const navigate = useNavigate();
+  const location = useLocation();
   const previousDrawerRef = useRef<DrawerKind | null>(null);
   const {
     activeDrawer,
@@ -167,7 +174,7 @@ function MainApp() {
     }
 
     const hasMatchingRoute = routes.some(
-      (route) => route.path === window.location.pathname,
+      (route) => route.path === location.pathname,
     );
 
     if (hasMatchingRoute) {
@@ -186,7 +193,7 @@ function MainApp() {
     if (firstRoute) {
       navigate(firstRoute.path, { replace: true });
     }
-  }, [activeTab, navigate, routes, windowLayout]);
+  }, [activeTab, location.pathname, navigate, routes, windowLayout]);
 
   if (windowLayout === "spread" || windowLayout === "matrix") {
     return (
@@ -309,16 +316,16 @@ function AppRoot() {
 
   if (drawer) {
     return (
-      <BrowserRouter>
+      <HashRouter>
         <DrawerWindowApp />
-      </BrowserRouter>
+      </HashRouter>
     );
   }
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <AuthGate />
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 
