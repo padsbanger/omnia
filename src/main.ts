@@ -14,6 +14,15 @@ import packageJson from "../package.json";
 
 const WINDOWS_APP_USER_MODEL_ID = packageJson.build.appId;
 
+let mainWindow: BrowserWindow | null = null;
+
+const setMainWindow = (window: BrowserWindow) => {
+  mainWindow = window;
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+};
+
 const createApplicationMenu = () => {
   const menu = Menu.buildFromTemplate([
     {
@@ -23,7 +32,6 @@ const createApplicationMenu = () => {
           label: 'Settings',
           accelerator: 'CmdOrCtrl+,',
           click: () => {
-            const mainWindow = BrowserWindow.getAllWindows()[0];
             mainWindow?.webContents.send('open-settings');
           },
         },
@@ -94,7 +102,7 @@ app.whenReady().then(async () => {
       updateStartupOpenMode(mode),
   );
 
-  createWindow({ startMinimized: shouldLaunchMinimized() });
+  setMainWindow(createWindow({ startMinimized: shouldLaunchMinimized() }));
 });
 
 
@@ -103,5 +111,7 @@ app.on("window-all-closed", () => {
 });
 
 app.on("activate", () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    setMainWindow(createWindow());
+  }
 });
