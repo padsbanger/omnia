@@ -9,4 +9,5 @@ export type DrawerStateSnapshot = {
   activeTab: string | null;
   routes: Array<Route>;
   windowLayout: WindowLayout;
+  isOffline: boolean;
 };

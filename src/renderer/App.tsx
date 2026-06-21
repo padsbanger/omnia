@@ -30,6 +30,7 @@ function MainApp() {
     activeDrawer,
     activeTab,
     addRoute,
+    isOffline,
     removeRoute,
     routes,
     setActiveDrawer,
@@ -61,6 +62,7 @@ function MainApp() {
       activeTab,
       routes,
       windowLayout,
+      isOffline,
     };
 
     void window.electronAPI
@@ -68,7 +70,7 @@ function MainApp() {
       .catch((error) => {
         console.error("Failed to sync drawer state", error);
       });
-  }, [activeDrawer, activeTab, routes, windowLayout]);
+  }, [activeDrawer, activeTab, isOffline, routes, windowLayout]);
 
   useEffect(() => {
     const unsubscribeClosed = window.electronAPI.onFromMain(
@@ -223,7 +225,9 @@ function AuthGate() {
     useAuthStore();
   const updateRoutesOrder = useAppStore((state) => state.updateRoutesOrder);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
-  const clearRoutes = useAppStore((state) => state.clearRoutes);
+  const routes = useAppStore((state) => state.routes);
+  const isOffline = useAppStore((state) => state.isOffline);
+  const setOfflineMode = useAppStore((state) => state.setOfflineMode);
   const [isVerifying, setIsVerifying] = React.useState(true);
   const [verifiedToken, setVerifiedToken] = React.useState<string | null>(null);
 
@@ -238,7 +242,7 @@ function AuthGate() {
 
     if (!token) {
       setVerifiedToken(null);
-      clearRoutes();
+      setOfflineMode(false);
       setIsVerifying(false);
       return () => {
         isMounted = false;
@@ -246,6 +250,7 @@ function AuthGate() {
     }
 
     setVerifiedToken(null);
+    setOfflineMode(false);
     setIsVerifying(true);
     void getCurrentUser(token)
       .then(async ({ user: currentUser }) => {
@@ -266,13 +271,25 @@ function AuthGate() {
           setActiveTab(appRoutes[0]?.id ?? null);
         }
 
+        setOfflineMode(false);
         setVerifiedToken(token);
       })
       .catch(() => {
         if (!isMounted) return;
+
+        const hasCachedWorkspace =
+          useAppStore.getState().routes.length > 0 &&
+          Boolean(useAuthStore.getState().user);
+
+        if (hasCachedWorkspace) {
+          setOfflineMode(true);
+          setVerifiedToken(token);
+          return;
+        }
+
         setVerifiedToken(null);
+        setOfflineMode(false);
         clearSession();
-        clearRoutes();
       })
       .finally(() => {
         if (isMounted) {
@@ -285,15 +302,19 @@ function AuthGate() {
     };
   }, [
     clearSession,
-    clearRoutes,
     hasHydrated,
     setActiveTab,
+    setOfflineMode,
     setSession,
     token,
     updateRoutesOrder,
   ]);
 
-  if (!hasHydrated || isVerifying || (token && verifiedToken !== token)) {
+  if (
+    !hasHydrated ||
+    isVerifying ||
+    (token && !isOffline && verifiedToken !== token)
+  ) {
     return (
       <div className="flex h-full w-full items-center justify-center bg-slate-100 text-sm text-slate-600">
         Loading...
@@ -301,8 +322,17 @@ function AuthGate() {
     );
   }
 
+  if (isOffline && routes.length > 0) {
+    return <MainApp />;
+  }
+
   if (!token || !user) {
-    return <AuthScreen />;
+    return (
+      <AuthScreen
+        hasCachedRoutes={routes.length > 0}
+        onContinueOffline={() => setOfflineMode(true)}
+      />
+    );
   }
 
   return <MainApp />;

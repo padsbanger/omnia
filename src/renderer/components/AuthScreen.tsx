@@ -6,7 +6,15 @@ import omniaLogo from "../../assets/icon-square.png";
 
 type AuthMode = "login" | "register";
 
-const AuthScreen = () => {
+type AuthScreenProps = {
+  hasCachedRoutes?: boolean;
+  onContinueOffline?: () => void;
+};
+
+const AuthScreen = ({
+  hasCachedRoutes = false,
+  onContinueOffline,
+}: AuthScreenProps) => {
   const setSession = useAuthStore((state) => state.setSession);
   const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
@@ -179,6 +187,15 @@ const AuthScreen = () => {
                 ? "Sign in"
                 : "Create account"}
             </Button>
+            {hasCachedRoutes && onContinueOffline && (
+              <Button
+                type="button"
+                className="border border-slate-300 bg-white font-medium text-slate-700"
+                onClick={onContinueOffline}
+              >
+                Use saved routes offline
+              </Button>
+            )}
           </form>
         </div>
       </section>

@@ -1,4 +1,5 @@
 const API_BASE_URL = "https://omnia-backend-production.up.railway.app";
+const REQUEST_TIMEOUT_MS = 10_000;
 
 type AuthRequestBody = {
   email: string;
@@ -30,13 +31,27 @@ const requestJson = async <T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> => {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+    });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error("The Omnia backend did not respond in time.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     throw new Error(await getErrorMessage(response));

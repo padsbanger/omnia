@@ -50,6 +50,10 @@ const DrawerWindowApp = () => {
       <CreateNewRouteForm
         closeDrawer={closeDrawer}
         onCreateRoute={async (route) => {
+          if (state?.isOffline) {
+            return false;
+          }
+
           if (!token) {
             return false;
           }
@@ -88,12 +92,17 @@ const DrawerWindowApp = () => {
       activeTab={state.activeTab}
       windowLayout={state.windowLayout}
       onDeleteRoute={async (routeId) => {
+        if (state.isOffline) {
+          return;
+        }
+
         if (token) {
           await deleteRoute(token, routeId);
         }
         await window.electronAPI.invoke("drawer-delete-route", { routeId });
         await refreshState();
       }}
+      isOffline={state.isOffline}
       onToggleHibernation={async (routeId) => {
         const route = state.routes.find((item) => item.id === routeId);
         if (!route) {

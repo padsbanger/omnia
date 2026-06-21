@@ -7,6 +7,7 @@ interface AppState {
   activeTab: string | null;
   unreadCounts: Record<string, number>;
   routes: Array<Route>;
+  isOffline: boolean;
   activeDrawer: "create" | "manage" | "settings" | null;
   windowLayout: "single" | "spread" | "matrix";
   toggleSidebar: () => void;
@@ -18,6 +19,7 @@ interface AppState {
   removeRoute: (routeId: string) => void;
   clearRoutes: () => void;
   updateRoutesOrder: (routes: Array<Route>) => void;
+  setOfflineMode: (isOffline: boolean) => void;
   setRouteHibernation: (routeId: string, isHibernated: boolean) => void;
   updateRouteMemoryUsage: (
     routeId: string,
@@ -32,6 +34,7 @@ export const useAppStore = create<AppState>()(
       activeTab: null as string | null,
       unreadCounts: {},
       routes: [] as Array<Route>,
+      isOffline: false,
       activeDrawer: null as "create" | "manage" | "settings" | null,
       windowLayout: "single" as "single" | "spread" | "matrix",
 
@@ -68,6 +71,7 @@ export const useAppStore = create<AppState>()(
           activeDrawer: null,
         }),
       updateRoutesOrder: (routes) => set({ routes }),
+      setOfflineMode: (isOffline) => set({ isOffline }),
       setRouteHibernation: (routeId, isHibernated) =>
         set((state) => ({
           routes: state.routes.map((route) =>
@@ -101,6 +105,7 @@ export const useAppStore = create<AppState>()(
       partialize: (state) => ({
         ...state,
         activeDrawer: null,
+        isOffline: false,
         routes: state.routes.map(({ memoryUsage, ...route }) => route),
       }),
     },

@@ -94,6 +94,7 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
     activeTab: null,
     routes: [],
     windowLayout: 'single',
+    isOffline: false,
   };
 
   const emitRouteMemoryUsage = (

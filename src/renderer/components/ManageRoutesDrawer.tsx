@@ -16,6 +16,7 @@ type ManageRoutesDrawerProps = {
   onDeleteRoute?: (routeId: string) => Promise<void>;
   onToggleHibernation?: (routeId: string) => Promise<void>;
   onWindowLayoutChange?: (windowLayout: WindowLayout) => Promise<void> | void;
+  isOffline?: boolean;
 };
 
 const ManageRoutesDrawer = ({
@@ -26,6 +27,7 @@ const ManageRoutesDrawer = ({
   onDeleteRoute,
   onToggleHibernation,
   onWindowLayoutChange,
+  isOffline = false,
 }: ManageRoutesDrawerProps) => {
   const navigate = useNavigate();
   const {
@@ -134,6 +136,12 @@ const ManageRoutesDrawer = ({
         <h2 className="text-lg font-semibold text-slate-950">Manage routes</h2>
       </div>
       <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
+        {isOffline && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            Offline mode: saved routes are available, but adding and deleting
+            routes requires the Omnia backend.
+          </div>
+        )}
         {routes.length === 0 ? (
           <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-6 text-sm text-slate-500">
             No routes yet.
@@ -216,6 +224,7 @@ const ManageRoutesDrawer = ({
                     <Button
                       isIconOnly
                       className="border border-slate-200 bg-slate-50 text-slate-700"
+                      isDisabled={isOffline}
                       onClick={() => handleDeleteRoute(route.id)}
                     >
                       <RiCloseFill />

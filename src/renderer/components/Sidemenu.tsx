@@ -11,6 +11,7 @@ import { useAppStore, useAuthStore } from "../store";
 const Sidemenu = () => {
   const {
     activeTab,
+    isOffline,
     unreadCounts,
     setActiveTab,
     updateUnreadCount,
@@ -158,7 +159,8 @@ const Sidemenu = () => {
       <Tooltip>
         <Button
           isIconOnly
-          className="my-6 bg-slate-900 text-slate-100 hover:bg-slate-800"
+          className={`${isOffline ? "mb-3 mt-2" : "my-6"} bg-slate-900 text-slate-100 hover:bg-slate-800`}
+          isDisabled={isOffline}
           onClick={() => {
             setActiveDrawer("create");
           }}
@@ -166,9 +168,27 @@ const Sidemenu = () => {
           <IoMdAdd />
         </Button>
         <Tooltip.Content>
-          <p>Add new route.</p>
+          <p>
+            {isOffline
+              ? "Reconnect to the Omnia backend to add routes."
+              : "Add new route."}
+          </p>
         </Tooltip.Content>
       </Tooltip>
+      {isOffline && (
+        <Tooltip>
+          <button
+            type="button"
+            className="mb-3 rounded border border-amber-400/40 bg-amber-400/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-300"
+            onClick={() => window.location.reload()}
+          >
+            Offline
+          </button>
+          <Tooltip.Content>
+            <p>Using saved routes. Click to retry the backend connection.</p>
+          </Tooltip.Content>
+        </Tooltip>
+      )}
       {routes.map((route) => {
         const isActive = route.id === activeTab;
         return (
