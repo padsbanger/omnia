@@ -4,6 +4,7 @@ import {
   MICROSOFT_TEAMS_HOSTS,
   SLACK_HOSTS,
   SPOTIFY_HOSTS,
+  TELEGRAM_HOSTS,
   TRADINGVIEW_HOSTS,
   TWITTER_HOSTS,
 } from "./auth_hosts";
@@ -55,6 +56,19 @@ const getRouteNavigationConfig = (
   if (icon === "slack" || lowerHost.endsWith("slack.com")) {
     return {
       internalHosts: [...SLACK_HOSTS, ...GOOGLE_HOSTS],
+      openExternalLinksInBrowser: true,
+    };
+  }
+
+  if (
+    icon === "telegram" ||
+    lowerHost.endsWith("telegram.org") ||
+    lowerHost.endsWith("telegram.me") ||
+    lowerHost === "t.me" ||
+    lowerHost.endsWith("telegra.ph")
+  ) {
+    return {
+      internalHosts: TELEGRAM_HOSTS,
       openExternalLinksInBrowser: true,
     };
   }

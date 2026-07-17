@@ -25,6 +25,13 @@ const SLACK_HOSTS = [
   'slack-files.com',
 ];
 
+const TELEGRAM_HOSTS = [
+  'telegram.org',
+  'telegram.me',
+  't.me',
+  'telegra.ph',
+];
+
 const MICROSOFT_TEAMS_HOSTS = [
   'teams.microsoft.com',
   'teams.live.com',
@@ -63,6 +70,7 @@ export {
   FACEBOOK_HOSTS, 
   TWITTER_HOSTS, 
   SLACK_HOSTS, 
+  TELEGRAM_HOSTS,
   MICROSOFT_TEAMS_HOSTS,
   TRADINGVIEW_HOSTS, 
   SPOTIFY_HOSTS 

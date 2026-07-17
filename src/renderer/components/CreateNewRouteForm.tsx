@@ -11,6 +11,7 @@ import {
   MICROSOFT_TEAMS_HOSTS,
   TRADINGVIEW_HOSTS,
   SPOTIFY_HOSTS,
+  TELEGRAM_HOSTS,
 } from "../../common/auth_hosts";
 
 type CreateNewRouteFormProps = {
@@ -31,6 +32,7 @@ type ApplicationKey =
   | 'twitter'
   | 'spotify'
   | 'slack'
+  | 'telegram'
   | 'teams';
 
 const APPLICATION_DEFAULTS: Record<
@@ -44,6 +46,7 @@ const APPLICATION_DEFAULTS: Record<
   twitter: { label: 'Twitter', url: 'https://twitter.com/home' },
   spotify: { label: 'Spotify', url: 'https://open.spotify.com/home' },
   slack: { label: 'Slack', url: 'https://app.slack.com/client' },
+  telegram: { label: 'Telegram', url: 'https://web.telegram.org/a/' },
   teams: { label: 'Microsoft Teams', url: 'https://teams.microsoft.com' },
 };
 
@@ -83,6 +86,19 @@ const getRouteNavigationConfig = (
   if (icon === 'slack' || lowerHost.endsWith('slack.com')) {
     return {
       internalHosts: [...SLACK_HOSTS, ...GOOGLE_HOSTS],
+      openExternalLinksInBrowser: true,
+    };
+  }
+
+  if (
+    icon === 'telegram' ||
+    lowerHost.endsWith('telegram.org') ||
+    lowerHost.endsWith('telegram.me') ||
+    lowerHost === 't.me' ||
+    lowerHost.endsWith('telegra.ph')
+  ) {
+    return {
+      internalHosts: TELEGRAM_HOSTS,
       openExternalLinksInBrowser: true,
     };
   }
@@ -271,6 +287,7 @@ const CreateNewRouteForm = ({
             <option value="tradingview">TradingView</option>
             <option value="spotify">Spotify</option>
             <option value="slack">Slack</option>
+            <option value="telegram">Telegram</option>
             <option value="teams">Microsoft Teams</option>
           </select>
         </label>

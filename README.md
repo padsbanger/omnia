@@ -8,6 +8,7 @@ Omnia is a desktop workspace organizer app that unifies multiple web-based appli
 - Gmail
 - Spotify
 - Slack
+- Telegram
 - TradingView
 - Discord
 - Microsoft Teams
