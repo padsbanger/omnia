@@ -1,6 +1,8 @@
 import { ApiRoute } from "../common/routeMapping";
 
-const API_BASE_URL = "https://omnia-backend-production.up.railway.app";
+const API_BASE_URL = (
+  process.env.OMNIA_API_BASE_URL ?? "https://omnia.pripyat.cloud"
+).replace(/\/+$/, "");
 const REQUEST_TIMEOUT_MS = 10_000;
 
 type ApiErrorResponse = {

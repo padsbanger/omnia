@@ -9,9 +9,10 @@ import { DrawerStateSnapshot, WindowLayout } from "../../common/drawer";
 import { Route } from "../../common/routes";
 import isExternalUrl from "../../common/utils/isExternalUrl";
 import {
+  AUTHENTIK_REDIRECT_URI,
+  completeAuthorization,
+  createAuthorizationRequest,
   getCurrentUser,
-  loginUser,
-  registerUser,
 } from "../authApi";
 import {
   createRoute,
@@ -48,12 +49,74 @@ type Bounds = {
   height: number;
 };
 
-type AuthCredentials = {
-  email: string;
-  password: string;
-};
-
 type CreateRoutePayload = Parameters<typeof createRoute>[1];
+
+const loginWithAuthentik = async (parent: BrowserWindow | null) => {
+  const authorizationRequest = await createAuthorizationRequest();
+  const redirectUrl = new URL(AUTHENTIK_REDIRECT_URI);
+
+  return new Promise<Awaited<ReturnType<typeof completeAuthorization>>>(
+    (resolve, reject) => {
+      let isSettled = false;
+      const authWindow = new BrowserWindow({
+        ...(parent ? { parent } : {}),
+        width: 520,
+        height: 700,
+        modal: Boolean(parent),
+        show: false,
+        title: "Sign in to Omnia",
+        webPreferences: {
+          contextIsolation: true,
+          nodeIntegration: false,
+          sandbox: true,
+        },
+      });
+
+      const settle = (
+        callback: (value?: Awaited<ReturnType<typeof completeAuthorization>>) => void,
+        value?: Awaited<ReturnType<typeof completeAuthorization>>,
+      ) => {
+        if (isSettled) return;
+        isSettled = true;
+        if (!authWindow.isDestroyed()) authWindow.close();
+        callback(value);
+      };
+
+      const handleNavigation = (url: string, event: Electron.Event) => {
+        const callbackUrl = new URL(url);
+        if (
+          callbackUrl.protocol !== redirectUrl.protocol ||
+          callbackUrl.hostname !== redirectUrl.hostname ||
+          callbackUrl.pathname !== redirectUrl.pathname
+        ) {
+          return;
+        }
+        event.preventDefault();
+        void completeAuthorization(url, authorizationRequest).then(
+          (response) => settle(resolve, response),
+          (error) => settle(reject, error),
+        );
+      };
+
+      authWindow.webContents.on("will-redirect", (event, url) =>
+        handleNavigation(url, event),
+      );
+      authWindow.webContents.on("will-navigate", (event, url) =>
+        handleNavigation(url, event),
+      );
+      authWindow.on("closed", () => {
+        if (!isSettled) {
+          isSettled = true;
+          reject(new Error("Sign-in was cancelled."));
+        }
+      });
+      authWindow.once("ready-to-show", () => authWindow.show());
+      void authWindow.loadURL(authorizationRequest.url).catch((error) =>
+        settle(reject, error),
+      );
+    },
+  );
+};
 
 export default function registerIpcHandlers({
   getMainWindow,
@@ -70,23 +133,15 @@ export default function registerIpcHandlers({
   setRouteHibernationFromDrawer,
   setWindowLayoutFromDrawer,
 }: RegisterIpcHandlersParams) {
-  ipcMain.removeHandler("auth-register");
-  ipcMain.handle(
-    "auth-register",
-    async (_event, credentials: AuthCredentials) =>
-      registerUser(credentials),
-  );
-
   ipcMain.removeHandler("auth-login");
-  ipcMain.handle(
-    "auth-login",
-    async (_event, credentials: AuthCredentials) => loginUser(credentials),
+  ipcMain.handle("auth-login", async () =>
+    loginWithAuthentik(getMainWindow()),
   );
 
   ipcMain.removeHandler("auth-me");
-  ipcMain.handle("auth-me", async (_event, { token }: { token: string }) =>
-    getCurrentUser(token),
-  );
+  ipcMain.handle("auth-me", async (_event, { token }: { token: string }) => ({
+    user: await getCurrentUser(token),
+  }));
 
   ipcMain.removeHandler("routes-list");
   ipcMain.handle("routes-list", async (_event, { token }: { token: string }) =>

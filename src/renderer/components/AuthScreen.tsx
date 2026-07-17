@@ -1,10 +1,8 @@
-import { CSSProperties, FormEvent, useMemo, useState } from "react";
+import { CSSProperties, useMemo, useState } from "react";
 import { Button } from "@heroui/react";
-import { loginUser, registerUser } from "../api/auth";
+import { loginUser } from "../api/auth";
 import { useAuthStore } from "../store";
 import omniaLogo from "../../assets/icon-square.png";
-
-type AuthMode = "login" | "register";
 
 type AuthScreenProps = {
   hasCachedRoutes?: boolean;
@@ -16,9 +14,6 @@ const AuthScreen = ({
   onContinueOffline,
 }: AuthScreenProps) => {
   const setSession = useAuthStore((state) => state.setSession);
-  const [mode, setMode] = useState<AuthMode>("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const particles = useMemo(
@@ -42,21 +37,14 @@ const AuthScreen = ({
     [],
   );
 
-  const canSubmit = useMemo(
-    () => email.trim().length > 0 && password.length >= 8 && !isSubmitting,
-    [email, isSubmitting, password],
-  );
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!canSubmit) return;
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
 
     setError(null);
     setIsSubmitting(true);
 
     try {
-      const authenticate = mode === "login" ? loginUser : registerUser;
-      const response = await authenticate(email.trim(), password);
+      const response = await loginUser();
       setSession(response.token, response.user);
     } catch (nextError) {
       setError(
@@ -67,11 +55,6 @@ const AuthScreen = ({
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const switchMode = (nextMode: AuthMode) => {
-    setMode(nextMode);
-    setError(null);
   };
 
   return (
@@ -107,67 +90,13 @@ const AuthScreen = ({
             <div>
               <h1 className="text-xl font-semibold text-slate-950">Omnia</h1>
               <p className="mt-1 text-sm text-slate-500">
-                {mode === "login"
-                  ? "Sign in to continue to your workspace."
-                  : "Create an account to start using Omnia."}
+                Sign in to continue to your workspace.
               </p>
             </div>
           </div>
         </div>
         <div className="p-6">
-          <div className="mb-5 grid grid-cols-2 rounded-md border border-slate-200 bg-slate-50 p-1">
-            <button
-              type="button"
-              className={`rounded px-3 py-2 text-sm font-medium ${
-                mode === "login"
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "text-slate-600 hover:bg-white hover:text-slate-950"
-              }`}
-              onClick={() => switchMode("login")}
-            >
-              Login
-            </button>
-            <button
-              type="button"
-              className={`rounded px-3 py-2 text-sm font-medium ${
-                mode === "register"
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "text-slate-600 hover:bg-white hover:text-slate-950"
-              }`}
-              onClick={() => switchMode("register")}
-            >
-              Register
-            </button>
-          </div>
-
-          <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-            <label className="flex flex-col gap-1 text-sm font-medium text-slate-800">
-              Email
-              <input
-                className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-950 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                autoComplete="email"
-                required
-              />
-            </label>
-
-            <label className="flex flex-col gap-1 text-sm font-medium text-slate-800">
-              Password
-              <input
-                className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-950 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                autoComplete={
-                  mode === "login" ? "current-password" : "new-password"
-                }
-                minLength={8}
-                required
-              />
-            </label>
-
+          <div className="flex flex-col gap-4">
             {error && (
               <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                 {error}
@@ -175,17 +104,12 @@ const AuthScreen = ({
             )}
 
             <Button
-              type="submit"
+              type="button"
               className="bg-blue-600 font-medium text-white"
-              isDisabled={!canSubmit}
+              isDisabled={isSubmitting}
+              onClick={handleSubmit}
             >
-              {isSubmitting
-                ? mode === "login"
-                  ? "Signing in..."
-                  : "Creating account..."
-                : mode === "login"
-                ? "Sign in"
-                : "Create account"}
+              {isSubmitting ? "Opening Authentik..." : "Sign in"}
             </Button>
             {hasCachedRoutes && onContinueOffline && (
               <Button
@@ -196,7 +120,7 @@ const AuthScreen = ({
                 Use saved routes offline
               </Button>
             )}
-          </form>
+          </div>
         </div>
       </section>
     </main>

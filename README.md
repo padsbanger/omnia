@@ -32,6 +32,15 @@ Make sure you have the following installed before running this project:
 - **npm** or **yarn** (comes with Node.js)
 - **Git** - [Download](https://git-scm.com/)
 
+### Authentik configuration
+
+Omnia uses Authentik through OpenID Connect with PKCE. Create a public/native OAuth2 provider, register `omnia://auth/callback` as its redirect URI, and set its client ID in a local `.env` file:
+
+```env
+AUTHENTIK_CLIENT_ID=kSYcRwghR9ItrtPB5opL0lvWYPpFZfUtXFtzAv22
+AUTHENTIK_REDIRECT_URI=omnia://auth/callback
+```
+
 ---
 
 ## 🔧 Setup
