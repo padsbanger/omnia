@@ -39,6 +39,8 @@ jobs:
         run: npx electron-forge make
         env:
           NODE_ENV: production
+          AUTHENTIK_CLIENT_ID: ${{ vars.AUTHENTIK_CLIENT_ID }}
+          AUTHENTIK_REDIRECT_URI: ${{vars.AUTHENTIK_REDIRECT_URI}}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload artifacts
