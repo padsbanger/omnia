@@ -17,6 +17,7 @@ import {
 import {
   createRoute,
   deleteRoute,
+  updateRoute,
   listRoutes,
 } from "../routeApi";
 
@@ -35,6 +36,7 @@ type RegisterIpcHandlersParams = {
     success: boolean;
     fallbackRoute: Route | null;
   }>;
+  updateRouteFromDrawer: (routeId: string, label: string) => Promise<boolean>;
   setRouteHibernationFromDrawer: (
     routeId: string,
     isHibernated: boolean,
@@ -130,6 +132,7 @@ export default function registerIpcHandlers({
   closeDrawerWindow,
   createRouteFromDrawer,
   deleteRouteFromDrawer,
+  updateRouteFromDrawer,
   setRouteHibernationFromDrawer,
   setWindowLayoutFromDrawer,
 }: RegisterIpcHandlersParams) {
@@ -177,6 +180,26 @@ export default function registerIpcHandlers({
       },
     ) => {
       await deleteRoute(token, routeId);
+      return { success: true };
+    },
+  );
+
+  ipcMain.removeHandler("routes-update");
+  ipcMain.handle(
+    "routes-update",
+    async (
+      _event,
+      {
+        token,
+        routeId,
+        route,
+      }: {
+        token: string;
+        routeId: string;
+        route: { name: string };
+      },
+    ) => {
+      await updateRoute(token, routeId, route);
       return { success: true };
     },
   );
@@ -401,6 +424,24 @@ export default function registerIpcHandlers({
     "drawer-delete-route",
     async (_event, { routeId }: { routeId: string }) => {
       return deleteRouteFromDrawer(routeId);
+    },
+  );
+
+  ipcMain.removeHandler("drawer-update-route-label");
+  ipcMain.handle(
+    "drawer-update-route-label",
+    async (
+      _event,
+      {
+        routeId,
+        label,
+      }: {
+        routeId: string;
+        label: string;
+      },
+    ) => {
+      const success = await updateRouteFromDrawer(routeId, label);
+      return { success };
     },
   );
 

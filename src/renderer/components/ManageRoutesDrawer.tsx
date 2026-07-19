@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { Button, Description, Label, Tooltip } from "@heroui/react";
 import { useNavigate } from "react-router-dom";
 import { WindowLayout } from "../../common/drawer";
@@ -14,6 +15,10 @@ type ManageRoutesDrawerProps = {
   activeTab?: string | null;
   windowLayout?: WindowLayout;
   onDeleteRoute?: (routeId: string) => Promise<void>;
+  onUpdateRouteLabel?: (
+    routeId: string,
+    label: string,
+  ) => Promise<boolean>;
   onToggleHibernation?: (routeId: string) => Promise<void>;
   onWindowLayoutChange?: (windowLayout: WindowLayout) => Promise<void> | void;
   isOffline?: boolean;
@@ -25,6 +30,7 @@ const ManageRoutesDrawer = ({
   activeTab: activeTabProp,
   windowLayout: windowLayoutProp,
   onDeleteRoute,
+  onUpdateRouteLabel,
   onToggleHibernation,
   onWindowLayoutChange,
   isOffline = false,
@@ -36,6 +42,7 @@ const ManageRoutesDrawer = ({
     removeRoute,
     setActiveTab,
     updateUnreadCount,
+    updateRouteLabel,
     windowLayout: storeWindowLayout,
     setWindowLayout,
     setRouteHibernation,
@@ -43,6 +50,70 @@ const ManageRoutesDrawer = ({
   const routes = routesProp ?? storeRoutes;
   const activeTab = activeTabProp ?? storeActiveTab;
   const windowLayout = windowLayoutProp ?? storeWindowLayout;
+  const [editingRouteId, setEditingRouteId] = useState<string | null>(null);
+  const [editingLabel, setEditingLabel] = useState("");
+  const [savingRouteId, setSavingRouteId] = useState<string | null>(null);
+  const [routeLabelError, setRouteLabelError] = useState<string | null>(null);
+
+  const normalizedEditingLabel = useMemo(
+    () => editingLabel.trim(),
+    [editingLabel],
+  );
+
+  const beginEditingRoute = (route: Route) => {
+    if (isOffline) {
+      return;
+    }
+
+    setEditingRouteId(route.id);
+    setEditingLabel(route.label);
+    setRouteLabelError(null);
+  };
+
+  const cancelEditingRoute = () => {
+    setEditingRouteId(null);
+    setEditingLabel("");
+    setRouteLabelError(null);
+  };
+
+  const commitRouteLabel = async (route: Route) => {
+    if (!normalizedEditingLabel.length) {
+      setRouteLabelError("Route label cannot be empty.");
+      return;
+    }
+
+    if (normalizedEditingLabel === route.label) {
+      cancelEditingRoute();
+      return;
+    }
+
+    setSavingRouteId(route.id);
+    setRouteLabelError(null);
+
+    try {
+      if (onUpdateRouteLabel) {
+        const wasUpdated = await onUpdateRouteLabel(
+          route.id,
+          normalizedEditingLabel,
+        );
+        if (!wasUpdated) {
+          setRouteLabelError("Failed to update route label.");
+          return;
+        }
+      } else {
+        updateRouteLabel(route.id, normalizedEditingLabel);
+      }
+
+      setEditingRouteId(null);
+      setEditingLabel("");
+    } catch (error) {
+      setRouteLabelError(
+        error instanceof Error ? error.message : "Failed to update route label.",
+      );
+    } finally {
+      setSavingRouteId(null);
+    }
+  };
 
   const handleToggleHibernation = async (routeId: string) => {
     if (onToggleHibernation) {
@@ -138,8 +209,8 @@ const ManageRoutesDrawer = ({
       <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
         {isOffline && (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            Offline mode: saved routes are available, but adding and deleting
-            routes requires the Omnia backend.
+            Offline mode: saved routes are available, but adding, renaming, and
+            deleting routes requires the Omnia backend.
           </div>
         )}
         {routes.length === 0 ? (
@@ -155,7 +226,26 @@ const ManageRoutesDrawer = ({
               <div className="flex flex-row gap-2">
                 <WindowIcon icon={route.icon} />
                 <div className="flex flex-col">
-                  <Label className="text-black">{route.label}</Label>
+                  {editingRouteId === route.id ? (
+                    <input
+                      autoFocus
+                      className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-950 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      onChange={(event) => setEditingLabel(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Escape") {
+                          cancelEditingRoute();
+                          return;
+                        }
+
+                        if (event.key === "Enter") {
+                          void commitRouteLabel(route);
+                        }
+                      }}
+                      value={editingLabel}
+                    />
+                  ) : (
+                    <Label className="text-black">{route.label}</Label>
+                  )}
                   <Description>{route.loadURL}</Description>
                   <Description>
                     {route.isHibernated
@@ -166,75 +256,111 @@ const ManageRoutesDrawer = ({
                   </Description>
                 </div>
               </div>
-              <div className="mt-3 flex flex-row items-center justify-start gap-3 align-baseline">
-                <Label>Actions: </Label>
-                <div className="flex flex-row mr-2 gap-2">
-                  <Tooltip>
-                    <Button
-                      className="border border-slate-200 bg-slate-50 text-slate-700"
-                      onClick={() => handleToggleHibernation(route.id)}
-                    >
-                      {route.isHibernated ? "Restore" : "Hibernate"}
-                    </Button>
-                    <Tooltip.Content>
-                      <p>
-                        {route.isHibernated
-                          ? "Wake this route and recreate its webview."
-                          : "Unload this route's webview to free memory."}
-                      </p>
-                    </Tooltip.Content>
-                  </Tooltip>
-                  <Tooltip>
-                    <Button
-                      isIconOnly
-                      className="border border-slate-200 bg-slate-50 text-slate-700"
-                      isDisabled={route.isHibernated}
-                      onClick={() => {
-                        window.electronAPI.invoke("refresh-view", {
-                          route,
-                        });
-                      }}
-                    >
-                      <IoIosRefresh />
-                    </Button>
-                    <Tooltip.Content>
-                      <p>Refresh this route.</p>
-                    </Tooltip.Content>
-                  </Tooltip>
-
-                  <Tooltip>
-                    <Button
-                      isIconOnly
-                      className="border border-slate-200 bg-slate-50 text-slate-700"
-                      isDisabled={route.isHibernated}
-                      onClick={() => {
-                        window.electronAPI.invoke(
-                          "clear-single-partition",
-                          { route },
-                        );
-                      }}
-                    >
-                      <IoTrashBin />
-                    </Button>
-                    <Tooltip.Content>
-                      <p>Clear site data for this route.</p>
-                    </Tooltip.Content>
-                  </Tooltip>
-                  <Tooltip>
-                    <Button
-                      isIconOnly
-                      className="border border-slate-200 bg-slate-50 text-slate-700"
-                      isDisabled={isOffline}
-                      onClick={() => handleDeleteRoute(route.id)}
-                    >
-                      <RiCloseFill />
-                    </Button>
-                    <Tooltip.Content>
-                      <p>Delete this route.</p>
-                    </Tooltip.Content>
-                  </Tooltip>
+              {editingRouteId === route.id ? (
+                <div className="mt-3 flex flex-row items-center gap-2">
+                  <Button
+                    className="bg-blue-600 text-white"
+                    isDisabled={!normalizedEditingLabel.length}
+                    isLoading={savingRouteId === route.id}
+                    onClick={() => void commitRouteLabel(route)}
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    className="border border-slate-200 bg-white text-slate-700"
+                    onClick={cancelEditingRoute}
+                  >
+                    Cancel
+                  </Button>
+                  {routeLabelError ? (
+                    <Description className="text-red-700">
+                      {routeLabelError}
+                    </Description>
+                  ) : null}
                 </div>
-              </div>
+              ) : (
+                <div className="mt-3 flex flex-row items-center justify-start gap-3 align-baseline">
+                  <Label>Actions: </Label>
+                  <div className="flex flex-row mr-2 gap-2">
+                    <Tooltip>
+                      <Button
+                        className="border border-slate-200 bg-slate-50 text-slate-700"
+                        onClick={() => handleToggleHibernation(route.id)}
+                      >
+                        {route.isHibernated ? "Restore" : "Hibernate"}
+                      </Button>
+                      <Tooltip.Content>
+                        <p>
+                          {route.isHibernated
+                            ? "Wake this route and recreate its webview."
+                            : "Unload this route's webview to free memory."}
+                        </p>
+                      </Tooltip.Content>
+                    </Tooltip>
+                    <Tooltip>
+                      <Button
+                        isIconOnly
+                        className="border border-slate-200 bg-slate-50 text-slate-700"
+                        isDisabled={route.isHibernated}
+                        onClick={() => {
+                          window.electronAPI.invoke("refresh-view", {
+                            route,
+                          });
+                        }}
+                      >
+                        <IoIosRefresh />
+                      </Button>
+                      <Tooltip.Content>
+                        <p>Refresh this route.</p>
+                      </Tooltip.Content>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <Button
+                        isIconOnly
+                        className="border border-slate-200 bg-slate-50 text-slate-700"
+                        isDisabled={route.isHibernated}
+                        onClick={() => {
+                          window.electronAPI.invoke(
+                            "clear-single-partition",
+                            { route },
+                          );
+                        }}
+                      >
+                        <IoTrashBin />
+                      </Button>
+                      <Tooltip.Content>
+                        <p>Clear site data for this route.</p>
+                      </Tooltip.Content>
+                    </Tooltip>
+                    <Tooltip>
+                      <Button
+                        className="border border-slate-200 bg-slate-50 text-slate-700"
+                        isDisabled={isOffline}
+                        onClick={() => beginEditingRoute(route)}
+                      >
+                        Rename
+                      </Button>
+                      <Tooltip.Content>
+                        <p>Rename this route label.</p>
+                      </Tooltip.Content>
+                    </Tooltip>
+                    <Tooltip>
+                      <Button
+                        isIconOnly
+                        className="border border-slate-200 bg-slate-50 text-slate-700"
+                        isDisabled={isOffline}
+                        onClick={() => handleDeleteRoute(route.id)}
+                      >
+                        <RiCloseFill />
+                      </Button>
+                      <Tooltip.Content>
+                        <p>Delete this route.</p>
+                      </Tooltip.Content>
+                    </Tooltip>
+                  </div>
+                </div>
+              )}
             </div>
           ))
         )}

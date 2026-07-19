@@ -691,6 +691,34 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
     return true;
   };
 
+  const updateRouteFromDrawer = async (routeId: string, label: string) => {
+    const route = drawerState.routes.find((item) => item.id === routeId);
+    if (!route) {
+      return false;
+    }
+
+    drawerState = {
+      ...drawerState,
+      routes: drawerState.routes.map((item) =>
+        item.id === routeId ? { ...item, label } : item,
+      ),
+    };
+
+    const runtimeRoute = runtimeRoutes.find((item) => item.id === routeId);
+    if (runtimeRoute) {
+      runtimeRoute.label = label;
+    }
+
+    const nextRoute = { ...route, label };
+    mainWindow?.webContents.send('drawer-route-label-changed', {
+      route: nextRoute,
+      routeId,
+      label,
+    });
+
+    return true;
+  };
+
   const deleteRouteFromDrawer = async (routeId: string) => {
     const route = drawerState.routes.find((item) => item.id === routeId);
     if (!route) {
@@ -776,10 +804,11 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
     getDrawerState,
     syncDrawerState,
     closeDrawerWindow,
-    createRouteFromDrawer,
-    deleteRouteFromDrawer,
-    setRouteHibernationFromDrawer,
-    setWindowLayoutFromDrawer,
+  createRouteFromDrawer,
+  deleteRouteFromDrawer,
+  updateRouteFromDrawer,
+  setRouteHibernationFromDrawer,
+  setWindowLayoutFromDrawer,
   });
 
   // Load main renderer (unchanged)

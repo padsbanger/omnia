@@ -4,10 +4,11 @@ import {
   DrawerStateSnapshot,
   WindowLayout,
 } from "../../common/drawer";
+import { Route as AppRoute } from "../../common/routes";
 import CreateNewRouteForm from "./CreateNewRouteForm";
 import ManageRoutesDrawer from "./ManageRoutesDrawer";
 import SettingsDrawer from "./SettingsDrawer";
-import { createRoute, deleteRoute } from "../api/routes";
+import { createRoute, deleteRoute, updateRoute } from "../api/routes";
 import { createLocalRouteFromApiRoute } from "../../common/routeMapping";
 import { useAuthStore } from "../store";
 
@@ -28,6 +29,39 @@ const DrawerWindowApp = () => {
       .then((nextState: DrawerStateSnapshot) => {
         setState(nextState);
       });
+  }, []);
+
+  useEffect(() => {
+    const unsubscribeLabelUpdated = window.electronAPI.onFromMain(
+      "drawer-route-label-changed",
+      ({ route }: {
+        route: AppRoute;
+      }) => {
+        if (!route?.id) {
+          return;
+        }
+
+        setState((currentState) =>
+          currentState
+            ? {
+                ...currentState,
+                routes: currentState.routes.map((item) =>
+                  item.id === route.id
+                    ? {
+                        ...item,
+                        ...route,
+                      }
+                    : item,
+                ),
+              }
+            : currentState,
+        );
+      },
+    );
+
+    return () => {
+      unsubscribeLabelUpdated?.();
+    };
   }, []);
 
   const closeDrawer = () => {
@@ -127,6 +161,27 @@ const DrawerWindowApp = () => {
               }
             : currentState,
         );
+      }}
+      onUpdateRouteLabel={async (routeId, label) => {
+        if (!state || state.isOffline) {
+          return false;
+        }
+
+        const route = state.routes.find((item) => item.id === routeId);
+        if (!route) {
+          return false;
+        }
+
+        if (!token) {
+          return false;
+        }
+
+        await updateRoute(token, routeId, { name: label });
+        const result = await window.electronAPI.invoke(
+          "drawer-update-route-label",
+          { routeId, label },
+        );
+        return Boolean(result?.success);
       }}
     />
   );

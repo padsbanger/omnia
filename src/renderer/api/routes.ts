@@ -8,6 +8,10 @@ type CreateRouteBody = {
   metadata?: Record<string, unknown>;
 };
 
+type UpdateRouteBody = {
+  name: string;
+};
+
 export const listRoutes = (token: string) =>
   window.electronAPI.invoke("routes-list", { token }) as Promise<{
     routes: ApiRoute[];
@@ -24,3 +28,14 @@ export const deleteRoute = (token: string, routeId: string) =>
     token,
     routeId,
   }) as Promise<{ success: boolean }>;
+
+export const updateRoute = (
+  token: string,
+  routeId: string,
+  route: UpdateRouteBody,
+) =>
+  window.electronAPI.invoke("routes-update", {
+    token,
+    routeId,
+    route,
+  }) as Promise<{ route: ApiRoute }>;

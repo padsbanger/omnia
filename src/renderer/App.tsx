@@ -35,6 +35,7 @@ function MainApp() {
     routes,
     setActiveDrawer,
     setActiveTab,
+    updateRouteLabel,
     setRouteHibernation,
     setWindowLayout,
     updateUnreadCount,
@@ -143,6 +144,17 @@ function MainApp() {
       },
     );
 
+    const unsubscribeRouteLabel = window.electronAPI.onFromMain(
+      "drawer-route-label-changed",
+      ({ route }: { route: AppRoute }) => {
+        if (!route?.id || !route.label) {
+          return;
+        }
+
+        updateRouteLabel(route.id, route.label);
+      },
+    );
+
     const unsubscribeLayout = window.electronAPI.onFromMain(
       "drawer-window-layout-changed",
       ({ windowLayout: nextWindowLayout }: { windowLayout: WindowLayout }) => {
@@ -156,6 +168,7 @@ function MainApp() {
       unsubscribeDeleted?.();
       unsubscribeHibernation?.();
       unsubscribeLayout?.();
+      unsubscribeRouteLabel?.();
     };
   }, [
     activeTab,
@@ -166,6 +179,7 @@ function MainApp() {
     setActiveTab,
     setRouteHibernation,
     setWindowLayout,
+    updateRouteLabel,
     updateUnreadCount,
     windowLayout,
   ]);

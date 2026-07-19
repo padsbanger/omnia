@@ -19,6 +19,7 @@ interface AppState {
   removeRoute: (routeId: string) => void;
   clearRoutes: () => void;
   updateRoutesOrder: (routes: Array<Route>) => void;
+  updateRouteLabel: (routeId: string, label: string) => void;
   setOfflineMode: (isOffline: boolean) => void;
   setRouteHibernation: (routeId: string, isHibernated: boolean) => void;
   updateRouteMemoryUsage: (
@@ -71,6 +72,12 @@ export const useAppStore = create<AppState>()(
           activeDrawer: null,
         }),
       updateRoutesOrder: (routes) => set({ routes }),
+      updateRouteLabel: (routeId, label) =>
+        set((state) => ({
+          routes: state.routes.map((route) =>
+            route.id === routeId ? { ...route, label } : route,
+          ),
+        })),
       setOfflineMode: (isOffline) => set({ isOffline }),
       setRouteHibernation: (routeId, isHibernated) =>
         set((state) => ({

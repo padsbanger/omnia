@@ -18,6 +18,10 @@ type CreateRouteBody = {
   metadata?: Record<string, unknown>;
 };
 
+type UpdateRouteBody = {
+  name: string;
+};
+
 const getErrorMessage = async (response: Response) => {
   let payload: ApiErrorResponse | null = null;
 
@@ -75,6 +79,12 @@ export const listRoutes = (token: string) =>
 export const createRoute = (token: string, body: CreateRouteBody) =>
   requestJson<{ route: ApiRoute }>("/routes", token, {
     method: "POST",
+    body: JSON.stringify(body),
+  });
+
+export const updateRoute = (token: string, routeId: string, body: UpdateRouteBody) =>
+  requestJson<{ route: ApiRoute }>(`/routes/${routeId}`, token, {
+    method: "PATCH",
     body: JSON.stringify(body),
   });
 
