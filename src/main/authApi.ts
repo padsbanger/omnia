@@ -6,7 +6,7 @@ const AUTHENTIK_CLIENT_ID =
   process.env.AUTHENTIK_CLIENT_ID ?? "kSYcRwghR9ItrtPB5opL0lvWYPpFZfUtXFtzAv22";
 export const AUTHENTIK_REDIRECT_URI =
   process.env.AUTHENTIK_REDIRECT_URI ?? "omnia://auth/callback";
-const REQUEST_TIMEOUT_MS = 10_000;
+const REQUEST_TIMEOUT_MS = 20_000;
 
 type OpenIdConfiguration = {
   authorization_endpoint: string;
@@ -80,7 +80,11 @@ const requestJson = async <T>(
     return (await response.json()) as T;
   } catch (error) {
     if (controller.signal.aborted) {
-      throw new Error("Authentik did not respond in time.");
+      throw new Error(
+        `Authentik did not respond in time after ${
+          REQUEST_TIMEOUT_MS / 1000
+        } seconds.`,
+      );
     }
     throw error;
   } finally {

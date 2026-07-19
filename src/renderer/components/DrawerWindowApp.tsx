@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Spinner } from "@heroui/react";
 import {
   DrawerKind,
   DrawerStateSnapshot,
@@ -116,7 +117,16 @@ const DrawerWindowApp = () => {
   }
 
   if (!state) {
-    return <div className="p-5 text-sm text-gray-500">Loading routes...</div>;
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-white">
+        <Spinner
+          aria-label="Loading routes"
+          className="h-10 w-10 text-slate-700"
+          size="lg"
+          color="default"
+        />
+      </div>
+    );
   }
 
   return (

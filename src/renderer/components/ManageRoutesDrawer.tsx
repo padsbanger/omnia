@@ -220,16 +220,16 @@ const ManageRoutesDrawer = ({
         ) : (
           routes.map((route) => (
             <div
-              className="flex flex-col rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
+              className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
               key={route.id}
             >
               <div className="flex flex-row gap-2">
                 <WindowIcon icon={route.icon} />
-                <div className="flex flex-col">
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
                   {editingRouteId === route.id ? (
                     <input
                       autoFocus
-                      className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-950 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-950 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                       onChange={(event) => setEditingLabel(event.target.value)}
                       onKeyDown={(event) => {
                         if (event.key === "Escape") {
@@ -244,9 +244,9 @@ const ManageRoutesDrawer = ({
                       value={editingLabel}
                     />
                   ) : (
-                    <Label className="text-black">{route.label}</Label>
+                    <Label className="truncate text-black">{route.label}</Label>
                   )}
-                  <Description>{route.loadURL}</Description>
+                  <Description className="truncate">{route.loadURL}</Description>
                   <Description>
                     {route.isHibernated
                       ? "Status: hibernated"
@@ -257,7 +257,7 @@ const ManageRoutesDrawer = ({
                 </div>
               </div>
               {editingRouteId === route.id ? (
-                <div className="mt-3 flex flex-row items-center gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                   <Button
                     className="bg-blue-600 text-white"
                     isDisabled={!normalizedEditingLabel.length}
@@ -279,12 +279,15 @@ const ManageRoutesDrawer = ({
                   ) : null}
                 </div>
               ) : (
-                <div className="mt-3 flex flex-row items-center justify-start gap-3 align-baseline">
-                  <Label>Actions: </Label>
-                  <div className="flex flex-row mr-2 gap-2">
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Actions
+                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
                     <Tooltip>
                       <Button
                         className="border border-slate-200 bg-slate-50 text-slate-700"
+                        size="sm"
                         onClick={() => handleToggleHibernation(route.id)}
                       >
                         {route.isHibernated ? "Restore" : "Hibernate"}
@@ -300,6 +303,7 @@ const ManageRoutesDrawer = ({
                     <Tooltip>
                       <Button
                         isIconOnly
+                        size="sm"
                         className="border border-slate-200 bg-slate-50 text-slate-700"
                         isDisabled={route.isHibernated}
                         onClick={() => {
@@ -318,6 +322,7 @@ const ManageRoutesDrawer = ({
                     <Tooltip>
                       <Button
                         isIconOnly
+                        size="sm"
                         className="border border-slate-200 bg-slate-50 text-slate-700"
                         isDisabled={route.isHibernated}
                         onClick={() => {
@@ -335,6 +340,7 @@ const ManageRoutesDrawer = ({
                     </Tooltip>
                     <Tooltip>
                       <Button
+                        size="sm"
                         className="border border-slate-200 bg-slate-50 text-slate-700"
                         isDisabled={isOffline}
                         onClick={() => beginEditingRoute(route)}
@@ -348,6 +354,7 @@ const ManageRoutesDrawer = ({
                     <Tooltip>
                       <Button
                         isIconOnly
+                        size="sm"
                         className="border border-slate-200 bg-slate-50 text-slate-700"
                         isDisabled={isOffline}
                         onClick={() => handleDeleteRoute(route.id)}

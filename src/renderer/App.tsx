@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import React, { useEffect, useMemo, useRef } from "react";
+import { Spinner } from "@heroui/react";
 import {
   HashRouter,
   Route,
@@ -330,8 +331,13 @@ function AuthGate() {
     (token && !isOffline && verifiedToken !== token)
   ) {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-slate-100 text-sm text-slate-600">
-        Loading...
+      <div className="flex h-full w-full items-center justify-center bg-white">
+        <Spinner
+          aria-label="Loading"
+          className="h-10 w-10 text-slate-700"
+          size="lg"
+          color="default"
+        />
       </div>
     );
   }

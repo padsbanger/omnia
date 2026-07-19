@@ -3,7 +3,7 @@ import { ApiRoute } from "../common/routeMapping";
 const API_BASE_URL = (
   process.env.OMNIA_API_BASE_URL ?? "https://omnia.pripyat.cloud"
 ).replace(/\/+$/, "");
-const REQUEST_TIMEOUT_MS = 10_000;
+const REQUEST_TIMEOUT_MS = 20_000;
 
 type ApiErrorResponse = {
   message?: string;
@@ -82,10 +82,16 @@ export const createRoute = (token: string, body: CreateRouteBody) =>
     body: JSON.stringify(body),
   });
 
-export const updateRoute = (token: string, routeId: string, body: UpdateRouteBody) =>
+export const updateRoute = async (
+  token: string,
+  routeId: string,
+  body: UpdateRouteBody,
+) =>
   requestJson<{ route: ApiRoute }>(`/routes/${routeId}`, token, {
     method: "PATCH",
-    body: JSON.stringify(body),
+    body: JSON.stringify({
+      name: body.name.trim(),
+    }),
   });
 
 export const deleteRoute = async (token: string, routeId: string) => {
