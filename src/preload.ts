@@ -30,11 +30,14 @@ const validChannels = [
   "drawer-route-created",
   "drawer-route-deleted",
   "drawer-route-hibernation-changed",
+  "drawer-route-label-changed",
   "drawer-window-layout-changed",
+  "drawer-update-route-label",
   "auth-login",
   "auth-me",
   "routes-list",
   "routes-create",
+  "routes-update",
   "routes-delete",
 ];
 

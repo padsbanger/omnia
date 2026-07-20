@@ -69,12 +69,14 @@ const requestJson = async <T>(
       const payload = (await response.json().catch(() => null)) as
         | { error?: string; error_description?: string; message?: string }
         | null;
-      throw new Error(
+      const error = new Error(
         payload?.error_description ??
           payload?.message ??
           payload?.error ??
           `Authentication request failed with status ${response.status}`,
-      );
+      ) as Error & { status: number };
+      error.status = response.status;
+      throw error;
     }
 
     return (await response.json()) as T;

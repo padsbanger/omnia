@@ -289,8 +289,15 @@ function AuthGate() {
         setOfflineMode(false);
         setVerifiedToken(token);
       })
-      .catch(() => {
+      .catch((error) => {
         if (!isMounted) return;
+
+        if (error instanceof Error && (error as { status?: number }).status === 401) {
+          setVerifiedToken(null);
+          setOfflineMode(false);
+          clearSession();
+          return;
+        }
 
         const hasCachedWorkspace =
           useAppStore.getState().routes.length > 0 &&

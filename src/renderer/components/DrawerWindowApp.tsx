@@ -186,11 +186,24 @@ const DrawerWindowApp = () => {
           return false;
         }
 
-        await updateRoute(token, routeId, { name: label });
+        const nextLabel = label.trim();
+        await updateRoute(token, routeId, { name: nextLabel });
         const result = await window.electronAPI.invoke(
           "drawer-update-route-label",
-          { routeId, label },
+          { routeId, label: nextLabel },
         );
+        if (result?.success) {
+          setState((currentState) =>
+            currentState
+              ? {
+                  ...currentState,
+                  routes: currentState.routes.map((item) =>
+                    item.id === routeId ? { ...item, label: nextLabel } : item,
+                  ),
+                }
+              : currentState,
+          );
+        }
         return Boolean(result?.success);
       }}
     />
