@@ -7,6 +7,7 @@ const AUTHENTIK_CLIENT_ID =
 export const AUTHENTIK_REDIRECT_URI =
   process.env.AUTHENTIK_REDIRECT_URI ?? "omnia://auth/callback";
 const REQUEST_TIMEOUT_MS = 20_000;
+const CONFIGURATION_RETRY_DELAYS_MS = [750, 2_000];
 
 type OpenIdConfiguration = {
   authorization_endpoint: string;
@@ -17,6 +18,7 @@ type OpenIdConfiguration = {
 type TokenResponse = {
   access_token: string;
   token_type: string;
+  refresh_token?: string;
 };
 
 type UserInfoResponse = {
@@ -35,7 +37,10 @@ export type AuthUser = {
 export type AuthResponse = {
   user: AuthUser;
   token: string;
+  refreshToken: string | null;
 };
+
+export type RefreshResponse = Pick<AuthResponse, "token" | "refreshToken">;
 
 export type AuthorizationRequest = {
   codeVerifier: string;
@@ -94,10 +99,40 @@ const requestJson = async <T>(
   }
 };
 
+const wait = (delayMs: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+
+const loadConfiguration = async () => {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= CONFIGURATION_RETRY_DELAYS_MS.length; attempt += 1) {
+    try {
+      return await requestJson<OpenIdConfiguration>(OPENID_CONFIGURATION_URL);
+    } catch (error) {
+      lastError = error;
+      const retryDelay = CONFIGURATION_RETRY_DELAYS_MS[attempt];
+      if (retryDelay === undefined) break;
+      await wait(retryDelay);
+    }
+  }
+
+  throw lastError;
+};
+
 const getConfiguration = () => {
-  configurationPromise ??= requestJson<OpenIdConfiguration>(
-    OPENID_CONFIGURATION_URL,
-  );
+  if (!configurationPromise) {
+    const request = loadConfiguration();
+    configurationPromise = request;
+
+    void request.catch(() => {
+      // A temporary discovery failure must not poison authentication until the
+      // Electron process is restarted. Let the next request try again.
+      if (configurationPromise === request) {
+        configurationPromise = null;
+      }
+    });
+  }
+
   return configurationPromise;
 };
 
@@ -128,7 +163,7 @@ export const createAuthorizationRequest = async (): Promise<AuthorizationRequest
     code_challenge_method: "S256",
     redirect_uri: AUTHENTIK_REDIRECT_URI,
     response_type: "code",
-    scope: "openid email profile",
+    scope: "openid email profile offline_access",
     state,
   }).toString();
 
@@ -168,7 +203,31 @@ export const completeAuthorization = async (
   });
   const user = await getCurrentUser(tokens.access_token);
 
-  return { token: tokens.access_token, user };
+  return {
+    token: tokens.access_token,
+    refreshToken: tokens.refresh_token ?? null,
+    user,
+  };
+};
+
+export const refreshAuthorization = async (
+  refreshToken: string,
+): Promise<RefreshResponse> => {
+  const configuration = await getConfiguration();
+  const body = new URLSearchParams({
+    client_id: AUTHENTIK_CLIENT_ID,
+    grant_type: "refresh_token",
+    refresh_token: refreshToken,
+  });
+  const tokens = await requestJson<TokenResponse>(configuration.token_endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString(),
+  });
+  return {
+    token: tokens.access_token,
+    refreshToken: tokens.refresh_token ?? refreshToken,
+  };
 };
 
 export const getCurrentUser = async (token: string): Promise<AuthUser> => {

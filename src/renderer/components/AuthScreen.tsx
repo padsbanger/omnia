@@ -45,7 +45,7 @@ const AuthScreen = ({
 
     try {
       const response = await loginUser();
-      setSession(response.token, response.user);
+      setSession(response.token, response.user, response.refreshToken);
     } catch (nextError) {
       setError(
         nextError instanceof Error

@@ -34,6 +34,7 @@ const validChannels = [
   "drawer-window-layout-changed",
   "drawer-update-route-label",
   "auth-login",
+  "auth-refresh",
   "auth-me",
   "routes-list",
   "routes-create",

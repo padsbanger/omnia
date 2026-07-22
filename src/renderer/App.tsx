@@ -15,13 +15,37 @@ import SpreadWindows from "./components/SpreadWindows";
 import DrawerWindowApp from "./components/DrawerWindowApp";
 import Layout from "./components/Layout";
 import AuthScreen from "./components/AuthScreen";
-import { getCurrentUser } from "./api/auth";
+import {
+  AuthRequestError,
+  getCurrentUser,
+  refreshSession,
+} from "./api/auth";
 import { listRoutes } from "./api/routes";
 import { createLocalRouteFromApiRoute } from "../common/routeMapping";
 import { useAppStore, useAuthStore } from "./store";
 
 const isDrawerKind = (value: string | null): value is DrawerKind =>
   value === "create" || value === "manage" || value === "settings";
+
+const BACKEND_RECONNECT_DELAY_MS = 15_000;
+const TOKEN_REFRESH_LEEWAY_MS = 60_000;
+
+const getTokenExpirationMs = (token: string) => {
+  try {
+    const payloadPart = token.split(".")[1];
+    if (!payloadPart) return null;
+
+    const normalized = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(
+      normalized.length + ((4 - (normalized.length % 4)) % 4),
+      "=",
+    );
+    const payload = JSON.parse(window.atob(padded)) as { exp?: unknown };
+    return typeof payload.exp === "number" ? payload.exp * 1_000 : null;
+  } catch {
+    return null;
+  }
+};
 
 function MainApp() {
   const navigate = useNavigate();
@@ -236,8 +260,15 @@ function MainApp() {
 }
 
 function AuthGate() {
-  const { clearSession, hasHydrated, setSession, token, user } =
-    useAuthStore();
+  const {
+    clearSession,
+    hasHydrated,
+    refreshToken,
+    setSession,
+    setTokens,
+    token,
+    user,
+  } = useAuthStore();
   const updateRoutesOrder = useAppStore((state) => state.updateRoutesOrder);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const routes = useAppStore((state) => state.routes);
@@ -245,9 +276,19 @@ function AuthGate() {
   const setOfflineMode = useAppStore((state) => state.setOfflineMode);
   const [isVerifying, setIsVerifying] = React.useState(true);
   const [verifiedToken, setVerifiedToken] = React.useState<string | null>(null);
+  const [verificationAttempt, setVerificationAttempt] = React.useState(0);
+  const reconnectTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   useEffect(() => {
     let isMounted = true;
+    const isReconnectAttempt = isOffline && verifiedToken === token;
+
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
 
     if (!hasHydrated) {
       return () => {
@@ -264,18 +305,73 @@ function AuthGate() {
       };
     }
 
-    setVerifiedToken(null);
-    setOfflineMode(false);
-    setIsVerifying(true);
-    void getCurrentUser(token)
-      .then(async ({ user: currentUser }) => {
+    if (!isReconnectAttempt) {
+      setVerifiedToken(null);
+      setOfflineMode(false);
+      setIsVerifying(true);
+    }
+
+    const scheduleReconnect = () => {
+      reconnectTimerRef.current = setTimeout(() => {
+        reconnectTimerRef.current = null;
+        setVerificationAttempt((attempt) => attempt + 1);
+      }, BACKEND_RECONNECT_DELAY_MS);
+    };
+
+    const handleSessionFailure = (error: unknown) => {
+      if (!isMounted) return;
+
+      if (
+        error instanceof AuthRequestError &&
+        (error.status === 400 || error.status === 401)
+      ) {
+        setVerifiedToken(null);
+        setOfflineMode(false);
+        clearSession();
+        return;
+      }
+
+      const hasCachedWorkspace =
+        useAppStore.getState().routes.length > 0 &&
+        Boolean(useAuthStore.getState().user);
+
+      if (hasCachedWorkspace) {
+        setOfflineMode(true);
+        setVerifiedToken(token);
+        scheduleReconnect();
+        return;
+      }
+
+      setVerifiedToken(null);
+      setOfflineMode(false);
+      clearSession();
+    };
+
+    const verifySession = async () => {
+      try {
+        const expiresAt = getTokenExpirationMs(token);
+        if (expiresAt !== null && expiresAt <= Date.now() + TOKEN_REFRESH_LEEWAY_MS) {
+          if (!refreshToken) {
+            setVerifiedToken(null);
+            setOfflineMode(false);
+            clearSession();
+            return;
+          }
+
+          const refreshedSession = await refreshSession(refreshToken);
+          if (!isMounted) return;
+          setTokens(refreshedSession.token, refreshedSession.refreshToken);
+          return;
+        }
+
+        const { user: currentUser } = await getCurrentUser(token);
         if (!isMounted) return;
         setSession(token, currentUser);
 
-        const { routes } = await listRoutes(token);
+        const { routes: remoteRoutes } = await listRoutes(token);
         if (!isMounted) return;
 
-        const appRoutes = routes
+        const appRoutes = remoteRoutes
           .slice()
           .sort((a, b) => a.order - b.order)
           .map(createLocalRouteFromApiRoute);
@@ -288,49 +384,64 @@ function AuthGate() {
 
         setOfflineMode(false);
         setVerifiedToken(token);
-      })
-      .catch((error) => {
-        if (!isMounted) return;
-
-        if (error instanceof Error && (error as { status?: number }).status === 401) {
-          setVerifiedToken(null);
-          setOfflineMode(false);
-          clearSession();
-          return;
-        }
-
-        const hasCachedWorkspace =
-          useAppStore.getState().routes.length > 0 &&
-          Boolean(useAuthStore.getState().user);
-
-        if (hasCachedWorkspace) {
-          setOfflineMode(true);
-          setVerifiedToken(token);
-          return;
-        }
-
-        setVerifiedToken(null);
-        setOfflineMode(false);
-        clearSession();
-      })
-      .finally(() => {
-        if (isMounted) {
+      } catch (error) {
+        handleSessionFailure(error);
+      } finally {
+        if (isMounted && !isReconnectAttempt) {
           setIsVerifying(false);
         }
-      });
+      }
+    };
+
+    void verifySession();
 
     return () => {
       isMounted = false;
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
     };
   }, [
     clearSession,
     hasHydrated,
+    refreshToken,
     setActiveTab,
     setOfflineMode,
     setSession,
+    setTokens,
     token,
     updateRoutesOrder,
+    verificationAttempt,
   ]);
+
+  useEffect(() => {
+    if (!token || !refreshToken) return;
+
+    const expiresAt = getTokenExpirationMs(token);
+    if (expiresAt === null) return;
+
+    const refreshDelay = Math.max(
+      0,
+      expiresAt - Date.now() - TOKEN_REFRESH_LEEWAY_MS,
+    );
+    const timer = setTimeout(() => {
+      setVerificationAttempt((attempt) => attempt + 1);
+    }, refreshDelay);
+
+    return () => clearTimeout(timer);
+  }, [refreshToken, token]);
+
+  useEffect(() => {
+    if (!isOffline || !token) return;
+
+    const retryWhenOnline = () => {
+      setVerificationAttempt((attempt) => attempt + 1);
+    };
+
+    window.addEventListener("online", retryWhenOnline);
+    return () => window.removeEventListener("online", retryWhenOnline);
+  }, [isOffline, token]);
 
   if (
     !hasHydrated ||

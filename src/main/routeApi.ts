@@ -4,6 +4,7 @@ const API_BASE_URL = (
   process.env.OMNIA_API_BASE_URL ?? "https://omnia.pripyat.cloud"
 ).replace(/\/+$/, "");
 const REQUEST_TIMEOUT_MS = 20_000;
+const LIST_ROUTES_RETRY_DELAYS_MS = [750, 2_000];
 
 type ApiErrorResponse = {
   message?: string;
@@ -21,6 +22,16 @@ type CreateRouteBody = {
 type UpdateRouteBody = {
   name: string;
 };
+
+class ApiRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "ApiRequestError";
+  }
+}
 
 const getErrorMessage = async (response: Response) => {
   let payload: ApiErrorResponse | null = null;
@@ -67,14 +78,33 @@ const requestJson = async <T>(
   }
 
   if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
+    throw new ApiRequestError(await getErrorMessage(response), response.status);
   }
 
   return (await response.json()) as T;
 };
 
-export const listRoutes = (token: string) =>
-  requestJson<{ routes: ApiRoute[] }>("/routes", token);
+const wait = (delayMs: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+
+export const listRoutes = async (token: string) => {
+  let lastError: unknown;
+
+  // This request is safe to repeat. Startup can race with network restoration,
+  // Cloudflare, or the backend fetching Authentik's JWKS for the first time.
+  for (let attempt = 0; attempt <= LIST_ROUTES_RETRY_DELAYS_MS.length; attempt += 1) {
+    try {
+      return await requestJson<{ routes: ApiRoute[] }>("/routes", token);
+    } catch (error) {
+      lastError = error;
+      const retryDelay = LIST_ROUTES_RETRY_DELAYS_MS[attempt];
+      if (retryDelay === undefined) break;
+      await wait(retryDelay);
+    }
+  }
+
+  throw lastError;
+};
 
 export const createRoute = (token: string, body: CreateRouteBody) =>
   requestJson<{ route: ApiRoute }>("/routes", token, {

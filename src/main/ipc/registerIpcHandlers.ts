@@ -13,6 +13,7 @@ import {
   completeAuthorization,
   createAuthorizationRequest,
   getCurrentUser,
+  refreshAuthorization,
 } from "../authApi";
 import {
   createRoute,
@@ -139,6 +140,30 @@ export default function registerIpcHandlers({
   ipcMain.removeHandler("auth-login");
   ipcMain.handle("auth-login", async () =>
     loginWithAuthentik(getMainWindow()),
+  );
+
+  ipcMain.removeHandler("auth-refresh");
+  ipcMain.handle(
+    "auth-refresh",
+    async (_event, { refreshToken }: { refreshToken: string }) => {
+      try {
+        return {
+          ok: true as const,
+          response: await refreshAuthorization(refreshToken),
+        };
+      } catch (error) {
+        return {
+          ok: false as const,
+          error: {
+            message:
+              error instanceof Error
+                ? error.message
+                : "The session could not be refreshed.",
+            status: (error as { status?: number })?.status,
+          },
+        };
+      }
+    },
   );
 
   ipcMain.removeHandler("auth-me");
