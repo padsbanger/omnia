@@ -277,6 +277,11 @@ function AuthGate() {
   const [isVerifying, setIsVerifying] = React.useState(true);
   const [verifiedToken, setVerifiedToken] = React.useState<string | null>(null);
   const [verificationAttempt, setVerificationAttempt] = React.useState(0);
+  // The blocking loader is only for restoring a session when the app first
+  // opens. Re-validating an already-visible session must not unmount MainApp:
+  // route BrowserViews stay alive independently from React and would otherwise
+  // leave the sidebar area looking blank while the check is in flight.
+  const hasCompletedInitialVerificationRef = React.useRef(false);
   const reconnectTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -297,6 +302,7 @@ function AuthGate() {
     }
 
     if (!token) {
+      hasCompletedInitialVerificationRef.current = false;
       setVerifiedToken(null);
       setOfflineMode(false);
       setIsVerifying(false);
@@ -308,7 +314,9 @@ function AuthGate() {
     if (!isReconnectAttempt) {
       setVerifiedToken(null);
       setOfflineMode(false);
-      setIsVerifying(true);
+      if (!hasCompletedInitialVerificationRef.current) {
+        setIsVerifying(true);
+      }
     }
 
     const scheduleReconnect = () => {
@@ -387,7 +395,12 @@ function AuthGate() {
       } catch (error) {
         handleSessionFailure(error);
       } finally {
-        if (isMounted && !isReconnectAttempt) {
+        if (
+          isMounted &&
+          !isReconnectAttempt &&
+          !hasCompletedInitialVerificationRef.current
+        ) {
+          hasCompletedInitialVerificationRef.current = true;
           setIsVerifying(false);
         }
       }
@@ -445,8 +458,8 @@ function AuthGate() {
 
   if (
     !hasHydrated ||
-    isVerifying ||
-    (token && !isOffline && verifiedToken !== token)
+    (!hasCompletedInitialVerificationRef.current &&
+      (isVerifying || (token && !isOffline && verifiedToken !== token)))
   ) {
     return (
       <div className="flex h-full w-full items-center justify-center bg-white">
