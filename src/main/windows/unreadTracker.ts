@@ -115,14 +115,21 @@ export const createUnreadTrackerScript = () => `
         return directCount;
       }
 
-      const row = element.closest('a, tr, [role="link"], [role="treeitem"], [role="listitem"], div');
+      // Gmail renders the unread badge next to the Inbox link rather than
+      // inside it in some layouts. Walk a small number of ancestors so their
+      // combined text includes that sibling without scanning the whole nav.
+      let row = element.parentElement;
+      let depth = 0;
 
-      if (row && row !== element) {
+      while (row && depth < 3) {
         const rowCount = parseUnreadText(readElementText(row));
 
         if (rowCount !== null) {
           return rowCount;
         }
+
+        row = row.parentElement;
+        depth += 1;
       }
     }
 
@@ -135,6 +142,8 @@ export const createUnreadTrackerScript = () => `
     }
 
     const inboxSelector = [
+      'a[href="#inbox"]',
+      'a[href$="#inbox"]',
       'a[href*="#inbox"]',
       'a[href*="/#inbox"]',
       '[aria-label*="Inbox" i]',
@@ -148,7 +157,9 @@ export const createUnreadTrackerScript = () => `
       return count;
     }
 
-    return document.querySelector(inboxSelector) ? 0 : null;
+    // The Inbox link can be present before Gmail has rendered its badge. Do
+    // not turn "badge not found" into a false zero; the title is the fallback.
+    return null;
   };
 
   const readTitle = () => {
@@ -169,10 +180,20 @@ export const createUnreadTrackerScript = () => `
   };
 
   const read = () => {
-    const gmailCount = readGmail();
+    const isGmail = /(^|\\.)mail\\.google\\./i.test(location.hostname);
 
-    if (gmailCount !== null) {
-      emit(gmailCount, "gmail-dom");
+    if (isGmail) {
+      const gmailCount = readGmail();
+
+      if (gmailCount !== null) {
+        emit(gmailCount, "gmail-dom");
+        return;
+      }
+
+      // Gmail removes the title prefix when the unread count reaches zero.
+      // On a loaded Gmail page, a missing prefix is therefore a valid zero.
+      const gmailTitleCount = readTitle();
+      emit(gmailTitleCount ?? 0, "gmail-title");
       return;
     }
 

@@ -13,6 +13,7 @@ interface AppState {
   toggleSidebar: () => void;
   setActiveTab: (tabId: string | null) => void;
   updateUnreadCount: (tabId: string, count: number) => void;
+  replaceUnreadCounts: (counts: Record<string, number>) => void;
   setActiveDrawer: (drawer: "create" | "manage" | "settings" | null) => void;
   setWindowLayout: (layout: "single" | "spread" | "matrix") => void;
   addRoute: (route: Route) => void;
@@ -47,6 +48,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           unreadCounts: { ...state.unreadCounts, [tabId]: count },
         })),
+      replaceUnreadCounts: (unreadCounts) => set({ unreadCounts }),
       setActiveDrawer: (activeDrawer) => set({ activeDrawer }),
       setWindowLayout: (windowLayout) => set({ windowLayout }),
       addRoute: (route) =>
@@ -106,11 +108,13 @@ export const useAppStore = create<AppState>()(
         return {
           ...currentState,
           ...nextState,
+          unreadCounts: {},
           activeDrawer: null,
         };
       },
       partialize: (state) => ({
         ...state,
+        unreadCounts: {},
         activeDrawer: null,
         isOffline: false,
         routes: state.routes.map(({ memoryUsage, ...route }) => route),

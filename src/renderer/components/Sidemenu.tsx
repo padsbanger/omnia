@@ -14,7 +14,7 @@ const Sidemenu = () => {
     isOffline,
     unreadCounts,
     setActiveTab,
-    updateUnreadCount,
+    replaceUnreadCounts,
     updateRouteMemoryUsage,
     routes,
     windowLayout,
@@ -113,9 +113,11 @@ const Sidemenu = () => {
         total: number;
         unreadCounts: Array<{ routeId: string; count: number }>;
       }) => {
-        newUnreadCounts.forEach(({ routeId, count }) => {
-          updateUnreadCount(routeId, count);
-        });
+        replaceUnreadCounts(
+          Object.fromEntries(
+            newUnreadCounts.map(({ routeId, count }) => [routeId, count]),
+          ),
+        );
         document.title = total > 0 ? `(${total}) Omnia` : "Omnia";
       },
     );
@@ -123,7 +125,7 @@ const Sidemenu = () => {
     return () => {
       unsubscribeGlobal?.();
     };
-  }, [updateUnreadCount]);
+  }, [replaceUnreadCounts]);
 
   useEffect(() => {
     const unsubscribeMemory = window.electronAPI.onFromMain(
