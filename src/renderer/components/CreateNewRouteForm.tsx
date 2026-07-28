@@ -173,7 +173,7 @@ const getRouteNavigationConfig = (
     internalHosts: [hostname],
     openExternalLinksInBrowser: true,
   };
-};;;;
+};
 
 const CreateNewRouteForm = ({
   closeDrawer,

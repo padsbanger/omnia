@@ -1,4 +1,4 @@
-import {
+﻿import {
   app,
   BrowserWindow,
   screen,
@@ -478,20 +478,7 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
 
     // Media debugging
     webContents.on('media-started-playing', () => {
-      const isPlaying = true;
-      const existing = audioStates.get(route.id);
-      if (existing) {
-        existing.isPlaying = true;
-        // Optionally track media type if available
-      } else {
-        audioStates.set(route.id, { isPlaying: true });
-      }
 
-      console.log(`🎵 Media started playing in route: ${route.id}`);
-    });
-
-    webContents.on('media-started-playing', () => {
-      const isPlaying = true;
       const existing = audioStates.get(route.id);
       if (existing) existing.isPlaying = true;
       else audioStates.set(route.id, { isPlaying: true });
@@ -612,7 +599,7 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
   // ... (removeRouteView and registerIpcHandlers remain unchanged from your previous version)
 
   const removeRouteView = async (route: Route) => {
-    // [your existing removeRouteView code here — unchanged]
+    // [your existing removeRouteView code here â€” unchanged]
     const view = views.get(route.id);
     if (view) {
       mainWindow?.contentView.removeChildView(view);
