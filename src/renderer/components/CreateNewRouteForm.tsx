@@ -12,6 +12,7 @@ import {
   TRADINGVIEW_HOSTS,
   SPOTIFY_HOSTS,
   TELEGRAM_HOSTS,
+  WHATSAPP_HOSTS,
 } from "../../common/auth_hosts";
 
 type CreateNewRouteFormProps = {
@@ -33,6 +34,7 @@ type ApplicationKey =
   | 'spotify'
   | 'slack'
   | 'telegram'
+  | 'whatsapp'
   | 'teams';
 
 const APPLICATION_DEFAULTS: Record<
@@ -47,6 +49,7 @@ const APPLICATION_DEFAULTS: Record<
   spotify: { label: 'Spotify', url: 'https://open.spotify.com/home' },
   slack: { label: 'Slack', url: 'https://app.slack.com/client' },
   telegram: { label: 'Telegram', url: 'https://web.telegram.org/a/' },
+  whatsapp: { label: 'WhatsApp', url: 'https://web.whatsapp.com' },
   teams: { label: 'Microsoft Teams', url: 'https://teams.microsoft.com' },
 };
 
@@ -99,6 +102,19 @@ const getRouteNavigationConfig = (
   ) {
     return {
       internalHosts: TELEGRAM_HOSTS,
+      openExternalLinksInBrowser: true,
+    };
+  }
+
+  if (
+    icon === 'whatsapp' ||
+    lowerHost === 'web.whatsapp.com' ||
+    lowerHost.endsWith('whatsapp.com') ||
+    lowerHost === 'wa.me' ||
+    lowerHost.endsWith('whatsapp.net')
+  ) {
+    return {
+      internalHosts: WHATSAPP_HOSTS,
       openExternalLinksInBrowser: true,
     };
   }
@@ -288,6 +304,7 @@ const CreateNewRouteForm = ({
             <option value="spotify">Spotify</option>
             <option value="slack">Slack</option>
             <option value="telegram">Telegram</option>
+            <option value="whatsapp">WhatsApp</option>
             <option value="teams">Microsoft Teams</option>
           </select>
         </label>

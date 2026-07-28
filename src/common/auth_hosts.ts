@@ -32,6 +32,14 @@ const TELEGRAM_HOSTS = [
   'telegra.ph',
 ];
 
+const WHATSAPP_HOSTS = [
+  'whatsapp.com',
+  'web.whatsapp.com',
+  'wa.me',
+  'whatsapp.net',
+  'static.whatsapp.net',
+];
+
 const MICROSOFT_TEAMS_HOSTS = [
   'teams.microsoft.com',
   'teams.live.com',
@@ -71,6 +79,7 @@ export {
   TWITTER_HOSTS, 
   SLACK_HOSTS, 
   TELEGRAM_HOSTS,
+  WHATSAPP_HOSTS,
   MICROSOFT_TEAMS_HOSTS,
   TRADINGVIEW_HOSTS, 
   SPOTIFY_HOSTS 

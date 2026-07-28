@@ -5,6 +5,7 @@ import {
   SLACK_HOSTS,
   SPOTIFY_HOSTS,
   TELEGRAM_HOSTS,
+  WHATSAPP_HOSTS,
   TRADINGVIEW_HOSTS,
   TWITTER_HOSTS,
 } from "./auth_hosts";
@@ -69,6 +70,19 @@ const getRouteNavigationConfig = (
   ) {
     return {
       internalHosts: TELEGRAM_HOSTS,
+      openExternalLinksInBrowser: true,
+    };
+  }
+
+  if (
+    icon === "whatsapp" ||
+    lowerHost === "web.whatsapp.com" ||
+    lowerHost.endsWith("whatsapp.com") ||
+    lowerHost === "wa.me" ||
+    lowerHost.endsWith("whatsapp.net")
+  ) {
+    return {
+      internalHosts: WHATSAPP_HOSTS,
       openExternalLinksInBrowser: true,
     };
   }

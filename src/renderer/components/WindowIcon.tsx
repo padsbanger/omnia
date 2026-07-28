@@ -1,6 +1,6 @@
 import { JSX } from "react";
 import { BiLogoGmail, BiLogoMicrosoftTeams } from "react-icons/bi";
-import { FaDiscord, FaTelegramPlane } from "react-icons/fa";
+import { FaDiscord, FaTelegramPlane, FaWhatsapp } from "react-icons/fa";
 import { FaFacebookMessenger } from "react-icons/fa";
 import { SiTradingview } from "react-icons/si";
 import { FaSquareXTwitter } from "react-icons/fa6";
@@ -17,6 +17,7 @@ const IconsDict: Record<string, JSX.Element> = {
   twitter: <FaSquareXTwitter />,
   slack: <FaSlack />,
   telegram: <FaTelegramPlane />,
+  whatsapp: <FaWhatsapp />,
   teams: <BiLogoMicrosoftTeams />,
   link: <FiLink />,
 };
