@@ -135,17 +135,36 @@ const DrawerWindowApp = () => {
       routes={state.routes}
       activeTab={state.activeTab}
       windowLayout={state.windowLayout}
-      onDeleteRoute={async (routeId) => {
-        if (state.isOffline) {
-          return;
-        }
+        onDeleteRoute={async (routeId) => {
+          if (state.isOffline) {
+            return;
+          }
 
-        if (token) {
-          await deleteRoute(token, routeId);
-        }
-        await window.electronAPI.invoke("drawer-delete-route", { routeId });
-        await refreshState();
-      }}
+          if (!token) {
+            console.warn("Missing auth token: cannot delete route.");
+            return;
+          }
+
+          try {
+            await deleteRoute(token, routeId);
+          } catch (error) {
+            console.error("Failed to delete route on backend.", error);
+            return;
+          }
+
+          const result = await window.electronAPI.invoke("drawer-delete-route", {
+            routeId,
+          });
+          if (result?.success) {
+            await refreshState();
+            return;
+          }
+
+          console.error(
+            "Failed to remove route from local app state.",
+            result?.reason,
+          );
+        }}
       isOffline={state.isOffline}
       onToggleHibernation={async (routeId) => {
         const route = state.routes.find((item) => item.id === routeId);
