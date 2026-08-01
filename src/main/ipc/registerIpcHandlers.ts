@@ -221,7 +221,7 @@ export default function registerIpcHandlers({
       }: {
         token: string;
         routeId: string;
-        route: { name: string };
+        route: { name?: string; order?: number };
       },
     ) => {
       await updateRoute(token, routeId, route);

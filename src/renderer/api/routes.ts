@@ -9,7 +9,8 @@ type CreateRouteBody = {
 };
 
 type UpdateRouteBody = {
-  name: string;
+  name?: string;
+  order?: number;
 };
 
 export const listRoutes = (token: string) =>

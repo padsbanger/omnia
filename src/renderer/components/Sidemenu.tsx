@@ -7,6 +7,7 @@ import { Button, Tooltip } from "@heroui/react";
 import { FaEdit } from 'react-icons/fa';
 import { FiLogOut } from "react-icons/fi";
 import { useAppStore, useAuthStore } from "../store";
+import { updateRoute } from "../api/routes";
 
 const Sidemenu = () => {
   const {
@@ -22,7 +23,7 @@ const Sidemenu = () => {
     clearRoutes,
     updateRoutesOrder,
   } = useAppStore();
-  const { clearSession, user } = useAuthStore();
+  const { clearSession, user, token } = useAuthStore();
   const [draggedRouteId, setDraggedRouteId] = useState<string | null>(null);
   const [dragOverRouteId, setDragOverRouteId] = useState<string | null>(null);
 
@@ -45,6 +46,22 @@ const Sidemenu = () => {
     setDragOverRouteId(routeId);
   };
 
+  const persistRouteOrder = async (nextRoutes: Array<(typeof routes)[number]>) => {
+    if (!token || isOffline) {
+      return;
+    }
+
+    try {
+      await Promise.all(
+        nextRoutes.map((route, order) =>
+          updateRoute(token, route.id, { order }),
+        ),
+      );
+    } catch (error) {
+      console.error("Failed to persist route order", error);
+    }
+  };
+
   const handleDrop = (targetRouteId: string) => {
     if (!draggedRouteId || draggedRouteId === targetRouteId) return;
 
@@ -58,6 +75,7 @@ const Sidemenu = () => {
     nextRoutes.splice(toIndex, 0, movedRoute);
 
     updateRoutesOrder(nextRoutes);
+    void persistRouteOrder(nextRoutes);
     setDraggedRouteId(null);
     setDragOverRouteId(null);
   };

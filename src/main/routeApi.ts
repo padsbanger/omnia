@@ -20,7 +20,8 @@ type CreateRouteBody = {
 };
 
 type UpdateRouteBody = {
-  name: string;
+  name?: string;
+  order?: number;
 };
 
 class ApiRequestError extends Error {
@@ -116,13 +117,21 @@ export const updateRoute = async (
   token: string,
   routeId: string,
   body: UpdateRouteBody,
-) =>
-  requestJson<{ route: ApiRoute }>(`/routes/${routeId}`, token, {
+) => {
+  const payload = {
+    ...(body.name !== undefined ? { name: body.name.trim() } : {}),
+    ...(body.order !== undefined ? { order: body.order } : {}),
+  };
+
+  if (Object.keys(payload).length === 0) {
+    throw new Error("No route updates were provided.");
+  }
+
+  return requestJson<{ route: ApiRoute }>(`/routes/${routeId}`, token, {
     method: "PATCH",
-    body: JSON.stringify({
-      name: body.name.trim(),
-    }),
+    body: JSON.stringify(payload),
   });
+};
 
 export const deleteRoute = async (token: string, routeId: string) => {
   const controller = new AbortController();
