@@ -9,6 +9,12 @@ import { FiLogOut } from "react-icons/fi";
 import { useAppStore, useAuthStore } from "../store";
 import { updateRoute } from "../api/routes";
 
+type UnreadState = {
+  total: number;
+  unreadCounts: Array<{ routeId: string; count: number }>;
+  revision: number;
+};
+
 const Sidemenu = () => {
   const {
     activeTab,
@@ -122,25 +128,41 @@ const Sidemenu = () => {
   }, [setActiveDrawer]);
 
   useEffect(() => {
+    let isDisposed = false;
+    let latestRevision = -1;
+
+    const applyUnreadState = ({
+      total,
+      unreadCounts: newUnreadCounts,
+      revision,
+    }: UnreadState) => {
+      if (isDisposed || revision < latestRevision) {
+        return;
+      }
+
+      latestRevision = revision;
+      replaceUnreadCounts(
+        Object.fromEntries(
+          newUnreadCounts.map(({ routeId, count }) => [routeId, count]),
+        ),
+      );
+      document.title = total > 0 ? `(${total}) Omnia` : "Omnia";
+    };
+
     const unsubscribeGlobal = window.electronAPI.onFromMain(
       "global-unread-update",
-      ({
-        total,
-        unreadCounts: newUnreadCounts,
-      }: {
-        total: number;
-        unreadCounts: Array<{ routeId: string; count: number }>;
-      }) => {
-        replaceUnreadCounts(
-          Object.fromEntries(
-            newUnreadCounts.map(({ routeId, count }) => [routeId, count]),
-          ),
-        );
-        document.title = total > 0 ? `(${total}) Omnia` : "Omnia";
-      },
+      applyUnreadState,
     );
 
+    void window.electronAPI
+      .invoke("get-unread-state")
+      .then(applyUnreadState)
+      .catch((error) => {
+        console.error("Failed to load unread state", error);
+      });
+
     return () => {
+      isDisposed = true;
       unsubscribeGlobal?.();
     };
   }, [replaceUnreadCounts]);

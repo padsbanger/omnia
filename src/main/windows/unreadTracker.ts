@@ -1,11 +1,14 @@
+import {
+  MAX_UNREAD_COUNT,
+  UNREAD_TITLE_COUNT_PATTERN_SOURCE,
+} from "../../common/utils/extractUnreadFromTitle";
+
 export const UNREAD_TRACKER_CONSOLE_PREFIX = "__OMNIA_UNREAD__";
 
 export type UnreadTrackerUpdate = {
   count: number;
   source: string;
 };
-
-const MAX_UNREAD_COUNT = 9999;
 
 export const parseUnreadTrackerMessage = (
   message: string,
@@ -39,6 +42,7 @@ export const createUnreadTrackerScript = () => `
 (() => {
   const prefix = ${JSON.stringify(UNREAD_TRACKER_CONSOLE_PREFIX)};
   const maxUnreadCount = ${MAX_UNREAD_COUNT};
+  const titleCountPattern = ${JSON.stringify(UNREAD_TITLE_COUNT_PATTERN_SOURCE)};
 
   if (window.__omniaUnreadTrackerInstalled) {
     return;
@@ -95,37 +99,118 @@ export const createUnreadTrackerScript = () => `
     return null;
   };
 
-  const readElementText = (element) =>
+  const readElementValues = (element) =>
     [
       element.getAttribute("aria-label"),
       element.getAttribute("title"),
       element.getAttribute("data-tooltip"),
       element.textContent,
     ]
-      .filter(Boolean)
-      .join(" ");
+      .filter(Boolean);
+
+  const readElementText = (element) =>
+    readElementValues(element).join(" ");
+
+  const isElementVisible = (element) => {
+    if (element.closest('[hidden], [aria-hidden="true"]')) {
+      return false;
+    }
+
+    if (typeof window.getComputedStyle === "function") {
+      const style = window.getComputedStyle(element);
+      if (style.display === "none" || style.visibility === "hidden") {
+        return false;
+      }
+    }
+
+    return (
+      typeof element.getClientRects !== "function" ||
+      element.getClientRects().length > 0
+    );
+  };
+
+  const parseExactCount = (value) => {
+    if (!value) {
+      return null;
+    }
+
+    const match = String(value)
+      .replace(/\u00a0/g, " ")
+      .trim()
+      .match(/^(\\d+(?:[.,]\\d+)?\\s*k|\\d[\\d\\s,.]*)\\+?$/i);
+
+    return match ? parseCount(match[1]) : null;
+  };
+
+  const findSiblingBadgeCount = (row, inboxElement) => {
+    const visibleLinks = Array.from(row.querySelectorAll('a[href]'))
+      .filter(isElementVisible);
+
+    // An ancestor with several links is the mailbox navigation container,
+    // not the Inbox row. Scanning it can steal another label's badge.
+    if (visibleLinks.length > 1) {
+      return { count: null, reachedNavigationContainer: true };
+    }
+
+    const candidates = Array.from(
+      row.querySelectorAll('[aria-label], [title], [data-tooltip], span, div'),
+    );
+
+    for (const candidate of candidates) {
+      if (
+        candidate === row ||
+        candidate === inboxElement ||
+        candidate.contains(inboxElement) ||
+        inboxElement.contains(candidate) ||
+        !isElementVisible(candidate)
+      ) {
+        continue;
+      }
+
+      for (const value of readElementValues(candidate)) {
+        const count = parseExactCount(value);
+        if (count !== null) {
+          return { count, reachedNavigationContainer: false };
+        }
+      }
+    }
+
+    return { count: null, reachedNavigationContainer: false };
+  };
 
   const findFromElements = (selector) => {
     const elements = Array.from(document.querySelectorAll(selector));
 
     for (const element of elements) {
-      const directCount = parseUnreadText(readElementText(element));
+      if (!isElementVisible(element)) {
+        continue;
+      }
+
+      const directText = readElementText(element);
+      const directCount = parseUnreadText(directText) ?? parseCount(directText);
 
       if (directCount !== null) {
         return directCount;
       }
 
       // Gmail renders the unread badge next to the Inbox link rather than
-      // inside it in some layouts. Walk a small number of ancestors so their
-      // combined text includes that sibling without scanning the whole nav.
+      // inside it in some layouts. Inspect exact numeric badge elements in
+      // the nearest row, then stop before reaching the full mailbox nav.
       let row = element.parentElement;
       let depth = 0;
 
-      while (row && depth < 3) {
-        const rowCount = parseUnreadText(readElementText(row));
+      while (row && depth < 4) {
+        const { count, reachedNavigationContainer } = findSiblingBadgeCount(
+          row,
+          element,
+        );
 
-        if (rowCount !== null) {
-          return rowCount;
+        if (count !== null) {
+          return count;
+        }
+
+        if (reachedNavigationContainer) {
+          break;
         }
 
         row = row.parentElement;
@@ -163,7 +248,7 @@ export const createUnreadTrackerScript = () => `
   };
 
   const readTitle = () => {
-    const titleMatch = document.title.match(/^\\((\\d[\\d\\s,.]*)\\+?\\)/);
+    const titleMatch = document.title.match(new RegExp(titleCountPattern, "i"));
     return titleMatch ? parseCount(titleMatch[1]) : null;
   };
 
@@ -190,8 +275,9 @@ export const createUnreadTrackerScript = () => `
         return;
       }
 
-      // Gmail removes the title prefix when the unread count reaches zero.
-      // On a loaded Gmail page, a missing prefix is therefore a valid zero.
+      // Gmail removes the numeric marker when the unread count reaches zero.
+      // The pattern supports both "(12) Inbox" and localized/suffix formats
+      // such as "Odebrane (12)".
       const gmailTitleCount = readTitle();
       emit(gmailTitleCount ?? 0, "gmail-title");
       return;

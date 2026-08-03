@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer } from "electron";
 const validChannels = [
   "page-title-updated",
   "global-unread-update",
+  "get-unread-state",
   "update-view-bounds",
   "activate-tab",
   "clear-partitions",

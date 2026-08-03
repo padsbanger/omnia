@@ -30,6 +30,11 @@ type RegisterIpcHandlersParams = {
   removeRouteView: (route: Route) => Promise<boolean>;
   hibernateRouteView: (route: Route) => Promise<boolean>;
   getDrawerState: () => DrawerStateSnapshot;
+  getUnreadState: () => {
+    unreadCounts: Array<{ routeId: string; count: number; source?: string }>;
+    total: number;
+    revision: number;
+  };
   syncDrawerState: (state: DrawerStateSnapshot) => Promise<void>;
   closeDrawerWindow: () => void;
   createRouteFromDrawer: (route: Route) => Promise<boolean>;
@@ -129,6 +134,7 @@ export default function registerIpcHandlers({
   removeRouteView,
   hibernateRouteView,
   getDrawerState,
+  getUnreadState,
   syncDrawerState,
   closeDrawerWindow,
   createRouteFromDrawer,
@@ -175,6 +181,9 @@ export default function registerIpcHandlers({
   ipcMain.handle("routes-list", async (_event, { token }: { token: string }) =>
     listRoutes(token),
   );
+
+  ipcMain.removeHandler("get-unread-state");
+  ipcMain.handle("get-unread-state", () => getUnreadState());
 
   ipcMain.removeHandler("routes-create");
   ipcMain.handle(

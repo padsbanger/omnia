@@ -8,11 +8,10 @@ import {
   shouldLaunchMinimized,
   updateStartupOpenMode,
 } from "./main/settings";
+import getWindowsAppUserModelId from "./main/windowsAppIdentity";
 import { type StartupOpenMode } from "./common/settings";
 
-import packageJson from "../package.json";
-
-const WINDOWS_APP_USER_MODEL_ID = packageJson.build.appId;
+const WINDOWS_APP_USER_MODEL_ID = getWindowsAppUserModelId();
 
 let mainWindow: BrowserWindow | null = null;
 

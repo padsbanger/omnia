@@ -25,7 +25,7 @@ import createSplashWindow from './splashWindow';
 import getAppIconPath from '../../common/utils/getAppIconPath';
 import getInternalHostsForRoute from '../../common/utils/getInternalHostsForRoute';
 import isGoogleOAuthPopupUrl from '../../common/utils/isGoogleOAuthPopupUrl';
-import packageJson from '../../../package.json';
+import getWindowsAppUserModelId from '../windowsAppIdentity';
 import { updateAppUnreadBadge } from './appUnreadBadge';
 import {
   createUnreadTrackerScript,
@@ -39,7 +39,11 @@ const DISABLED_WEBAUTHN_BLINK_FEATURES =
 const MEMORY_USAGE_POLL_INTERVAL_MS = 15000;
 const SIDEMENU_WIDTH = 100;
 const DRAWER_ANIMATION_DURATION_MS = 180;
-const WINDOWS_APP_USER_MODEL_ID = packageJson.build.appId;
+const WINDOWS_APP_USER_MODEL_ID = getWindowsAppUserModelId();
+const ROUTE_REQUEST_PERMISSIONS = new Set([
+  'media',
+  'notifications',
+]);
 const DRAWER_WIDTHS: Record<DrawerKind, number> = {
   create: 360,
   manage: 360,
@@ -50,12 +54,38 @@ type CreateWindowOptions = {
   startMinimized?: boolean;
 };
 
+type UnreadCountEntry = {
+  routeId: string;
+  count: number;
+  source?: string;
+};
+
+type UnreadState = {
+  unreadCounts: UnreadCountEntry[];
+  total: number;
+  revision: number;
+};
+
+const escapeRegExp = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+export const getChromiumUserAgent = (
+  userAgent: string,
+  applicationName: string,
+) =>
+  userAgent
+    .replace(/\sElectron\/[^\s]+/gi, '')
+    .replace(
+      new RegExp(`\\s${escapeRegExp(applicationName)}\\/[^\\s]+`, 'gi'),
+      '',
+    )
+    .trim();
+
 const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
   let mainWindow: BrowserWindow | null = null;
   let splashWindow: BrowserWindow | null = startMinimized
     ? null
     : createSplashWindow();
-  // Add this near your unreadCounts declaration
   const audioStates: Map<string, { isPlaying: boolean; mediaType?: string }> =
     new Map();
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
@@ -84,7 +114,8 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
 
   const views = new Map<string, WebContentsView>();
   const runtimeRoutes: Route[] = [];
-  const unreadCounts: Array<{ routeId: string; count: number; source?: string }> = [];
+  const unreadCounts: UnreadCountEntry[] = [];
+  let unreadRevision = 0;
   let latestTotalUnread = 0;
   let drawerWindow: BrowserWindow | null = null;
   let drawerWindowTargetUrl: string | null = null;
@@ -117,6 +148,19 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
     updateAppUnreadBadge(mainWindow, totalUnread);
   };
 
+  const getUnreadState = (): UnreadState => ({
+    unreadCounts: unreadCounts.map((entry) => ({ ...entry })),
+    total: unreadCounts.reduce((total, item) => total + item.count, 0),
+    revision: unreadRevision,
+  });
+
+  const publishUnreadState = () => {
+    const state = getUnreadState();
+    syncAppUnreadBadge(state.total);
+    mainWindow?.webContents.send('global-unread-update', state);
+    return state;
+  };
+
   const getUnreadSourcePriority = (source: string) => {
     if (source.startsWith('gmail-')) return 2;
     if (source.endsWith('-dom')) return 2;
@@ -141,24 +185,22 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
     }
 
     if (existing) {
+      if (existing.count === normalizedCount && existing.source === source) {
+        return;
+      }
       existing.count = normalizedCount;
       existing.source = source;
     } else {
       unreadCounts.push({ routeId, count: normalizedCount, source });
     }
 
-    const totalUnread = unreadCounts.reduce((total, item) => total + item.count, 0);
-
-    syncAppUnreadBadge(totalUnread);
-
-    mainWindow?.webContents.send('global-unread-update', {
-      unreadCounts,
-      total: totalUnread,
-    });
+    unreadRevision += 1;
+    publishUnreadState();
     mainWindow?.webContents.send('unread-update', {
       routeId,
       count: normalizedCount,
       source,
+      revision: unreadRevision,
     });
   };
 
@@ -238,20 +280,15 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
 
   const clearRouteRuntimeState = (routeId: string) => {
     const unreadIndex = unreadCounts.findIndex((item) => item.routeId === routeId);
-    if (unreadIndex >= 0) unreadCounts.splice(unreadIndex, 1);
+    if (unreadIndex >= 0) {
+      unreadCounts.splice(unreadIndex, 1);
+      unreadRevision += 1;
+    }
 
     audioStates.delete(routeId);
     emitRouteMemoryUsage(routeId, undefined);
 
-    const totalUnread = unreadCounts.reduce(
-      (total, item) => total + item.count,
-      0,
-    );
-    syncAppUnreadBadge(totalUnread);
-    mainWindow?.webContents.send('global-unread-update', {
-      unreadCounts,
-      total: totalUnread,
-    });
+    publishUnreadState();
   };
 
   const getDrawerWindowUrl = (drawer: DrawerKind) => {
@@ -445,16 +482,74 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
     const partition = route.partition;
     const ses = session.fromPartition(partition);
     const internalHosts = getInternalHostsForRoute(route);
+    const routeHost = new URL(route.loadURL).hostname.toLowerCase();
+    const permissionHosts = new Set([
+      routeHost,
+      ...(route.icon === 'gmail'
+        ? ['mail.google.com', 'chat.google.com', 'meet.google.com']
+        : []),
+    ]);
 
-    ses.setPermissionRequestHandler((webContents, permission, callback) => {
-      const allowed = [
-        'media',
-        'audioCapture',
-        'videoCapture',
-        'notifications',
-      ];
-      callback(allowed.includes(permission));
-    });
+    const isTrustedPermissionOrigin = (rawUrl: string | undefined) => {
+      if (!rawUrl) return false;
+
+      try {
+        const url = new URL(rawUrl);
+        const hostname = url.hostname.toLowerCase();
+        const isLoopback =
+          hostname === 'localhost' ||
+          hostname === '127.0.0.1' ||
+          hostname === '[::1]';
+
+        if (
+          url.protocol !== 'https:' &&
+          !(url.protocol === 'http:' && isLoopback)
+        ) {
+          return false;
+        }
+
+        return Array.from(permissionHosts).some((allowedHost) => {
+          return (
+            hostname === allowedHost || hostname.endsWith(`.${allowedHost}`)
+          );
+        });
+      } catch {
+        return false;
+      }
+    };
+
+    ses.setPermissionCheckHandler(
+      (_webContents, permission, requestingOrigin, details) => {
+        const hasTrustedRequester = isTrustedPermissionOrigin(requestingOrigin);
+        const hasTrustedEmbedder =
+          !details.embeddingOrigin ||
+          isTrustedPermissionOrigin(details.embeddingOrigin);
+
+        return (
+          ROUTE_REQUEST_PERMISSIONS.has(permission) &&
+          hasTrustedRequester &&
+          hasTrustedEmbedder
+        );
+      },
+    );
+
+    ses.setPermissionRequestHandler(
+      (_webContents, permission, callback, details) => {
+        const granted =
+          ROUTE_REQUEST_PERMISSIONS.has(permission) &&
+          isTrustedPermissionOrigin(details.requestingUrl);
+
+        if (permission === 'notifications' && !granted) {
+          console.warn(
+            `Denied notification permission from an untrusted origin for route ${route.id}`,
+          );
+        }
+
+        callback(granted);
+      },
+    );
+
+    ses.setUserAgent(getChromiumUserAgent(ses.getUserAgent(), app.getName()));
 
     const view = new WebContentsView({
       webPreferences: {
@@ -469,10 +564,6 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
           : undefined,
       },
     });
-
-    view.webContents.setUserAgent(
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
-    );
 
     const webContents = view.webContents;
 
@@ -512,31 +603,38 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
         });
     };
 
-    webContents.on('console-message', (_event: any, detailsOrLevel: any, message?: string) => {
-      const consoleMessage =
-        typeof detailsOrLevel?.message === 'string'
-          ? detailsOrLevel.message
-          : message;
+    webContents.on(
+      'console-message',
+      (details, _level, legacyMessage) => {
+        const consoleMessage =
+          typeof details.message === 'string'
+            ? details.message
+            : legacyMessage;
 
-      if (typeof consoleMessage !== 'string') {
-        return;
-      }
+        if (typeof consoleMessage !== 'string') {
+          return;
+        }
 
-      const unreadUpdate = parseUnreadTrackerMessage(consoleMessage);
+        const unreadUpdate = parseUnreadTrackerMessage(consoleMessage);
 
-      if (!unreadUpdate) {
-        return;
-      }
+        if (!unreadUpdate) {
+          return;
+        }
 
-      setRouteUnreadCount(route.id, unreadUpdate.count, unreadUpdate.source);
-    });
+        setRouteUnreadCount(route.id, unreadUpdate.count, unreadUpdate.source);
+      },
+    );
 
     webContents.on('dom-ready', injectUnreadTracker);
     webContents.on('did-finish-load', injectUnreadTracker);
 
     webContents.on('page-title-updated', (_event: any, title: string) => {
       const unread = extractUnreadFromTitle(title);
-      setRouteUnreadCount(route.id, unread, 'title');
+      setRouteUnreadCount(
+        route.id,
+        unread,
+        route.icon === 'gmail' ? 'gmail-title' : 'title',
+      );
     });
 
     const openInExternalBrowser = (url: string) => {
@@ -790,6 +888,7 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
     removeRouteView,
     hibernateRouteView,
     getDrawerState,
+    getUnreadState,
     syncDrawerState,
     closeDrawerWindow,
   createRouteFromDrawer,
