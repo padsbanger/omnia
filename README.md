@@ -240,6 +240,10 @@ MIT License
 **Michał Lach**
 Email: kontakt@michal-lach.pl
 
+Need one bounded React or TypeScript issue fixed? See the
+[$25 fixed-scope service](https://michal-lach.pl/services/?ref=github-omnia),
+including delivery proof and acceptance rules.
+
 ---
 
 *Built with ❤️ using [Electron Forge](https://www.electron-forge.io/)*
