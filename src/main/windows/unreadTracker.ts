@@ -43,6 +43,7 @@ export const createUnreadTrackerScript = () => `
   const prefix = ${JSON.stringify(UNREAD_TRACKER_CONSOLE_PREFIX)};
   const maxUnreadCount = ${MAX_UNREAD_COUNT};
   const titleCountPattern = ${JSON.stringify(UNREAD_TITLE_COUNT_PATTERN_SOURCE)};
+  const isTelegramHost = /(^|\\.)telegram\\.(?:org|me)$/i.test(location.hostname);
 
   if (window.__omniaUnreadTrackerInstalled) {
     return;
@@ -84,7 +85,7 @@ export const createUnreadTrackerScript = () => `
     }
 
     const text = String(value).replace(/\\s+/g, " ").trim();
-    const unreadPhrase = text.match(/(\\d[\\d\\s,.]*|\\d+(?:[.,]\\d+)?\\s*k)\\+?\\s+unread/i);
+    const unreadPhrase = text.match(/(\\d[\\d\\s,.]*|\\d+(?:[.,]\\d+)?\\s*k)\\+?\\s+(?:new|unread|notification|notifications?|messages?)\\b/i);
 
     if (unreadPhrase) {
       return parseCount(unreadPhrase[1]);
@@ -94,6 +95,27 @@ export const createUnreadTrackerScript = () => `
 
     if (inboxPhrase) {
       return parseCount(inboxPhrase[1]);
+    }
+
+    return null;
+  };
+
+  const parseTelegramTitleCount = (value) => {
+    if (!isTelegramHost) {
+      return null;
+    }
+
+    const text = String(value).replace(/\\s+/g, " ").trim();
+
+    const telegramParenthesized = text.match(/telegram[^\\d]{0,35}\\((\\d+(?:[.,]\\d+)?\\s*k|\\d[\\d\\s,.]*)\\+?\\)/i);
+
+    if (telegramParenthesized) {
+      return parseCount(telegramParenthesized[1]);
+    }
+
+    const telegramSuffix = text.match(/(\\d+(?:[.,]\\d+)?\\s*k|\\d[\\d\\s,.]*)\\+?\\s+messages?\\b/i);
+    if (telegramSuffix) {
+      return parseCount(telegramSuffix[1]);
     }
 
     return null;
@@ -248,7 +270,18 @@ export const createUnreadTrackerScript = () => `
   };
 
   const readTitle = () => {
-    const titleMatch = document.title.match(new RegExp(titleCountPattern, "i"));
+    const titleText = String(document.title || "");
+    const unreadTextCount = parseUnreadText(titleText);
+    if (unreadTextCount !== null) {
+      return unreadTextCount;
+    }
+
+    const telegramTitleCount = parseTelegramTitleCount(titleText);
+    if (telegramTitleCount !== null) {
+      return telegramTitleCount;
+    }
+
+    const titleMatch = titleText.match(new RegExp(titleCountPattern, "i"));
     return titleMatch ? parseCount(titleMatch[1]) : null;
   };
 
@@ -263,6 +296,43 @@ export const createUnreadTrackerScript = () => `
     window.__omniaLastUnreadKey = key;
     console.info(prefix + JSON.stringify({ count: normalizedCount, source }));
   };
+
+  const installTelegramAppBadgeBridge = () => {
+    if (!isTelegramHost || window.__omniaTelegramAppBadgeBridgeInstalled) {
+      return;
+    }
+
+    window.__omniaTelegramAppBadgeBridgeInstalled = true;
+
+    const setAppBadge = (value = 0) => {
+      const numericValue = Number(value);
+      emit(Number.isFinite(numericValue) ? numericValue : 0, "telegram-app-badge");
+      return Promise.resolve();
+    };
+
+    const clearAppBadge = () => {
+      emit(0, "telegram-app-badge");
+      return Promise.resolve();
+    };
+
+    try {
+      Object.defineProperties(window.navigator, {
+        setAppBadge: {
+          configurable: true,
+          value: setAppBadge,
+        },
+        clearAppBadge: {
+          configurable: true,
+          value: clearAppBadge,
+        },
+      });
+    } catch {
+      window.navigator.setAppBadge = setAppBadge;
+      window.navigator.clearAppBadge = clearAppBadge;
+    }
+  };
+
+  installTelegramAppBadgeBridge();
 
   const read = () => {
     const isGmail = /(^|\\.)mail\\.google\\./i.test(location.hostname);
@@ -284,10 +354,7 @@ export const createUnreadTrackerScript = () => `
     }
 
     const titleCount = readTitle();
-
-    if (titleCount !== null) {
-      emit(titleCount, "title");
-    }
+    emit(titleCount ?? 0, "title");
   };
 
   let readTimer = null;

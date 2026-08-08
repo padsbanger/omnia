@@ -162,6 +162,7 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
   };
 
   const getUnreadSourcePriority = (source: string) => {
+    if (source === 'telegram-app-badge') return 3;
     if (source.startsWith('gmail-')) return 2;
     if (source.endsWith('-dom')) return 2;
     if (source === 'title') return 1;
