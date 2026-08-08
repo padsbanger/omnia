@@ -81,6 +81,9 @@ const DIGIT_GLYPHS: Record<string, string[]> = {
   '+': ['010', '010', '111', '010', '010'],
 };
 
+const UNREAD_BADGE_COLOR: [number, number, number, number] = [239, 68, 68, 255];
+const UNREAD_BADGE_TEXT_COLOR: [number, number, number, number] = [255, 255, 255, 255];
+
 const createOverlayIcon = (count: number) => {
   const label = getUnreadOverlayText(count);
   if (!label) {
@@ -108,7 +111,7 @@ const createOverlayIcon = (count: number) => {
       const dx = x + 0.5 - size / 2;
       const dy = y + 0.5 - size / 2;
       if (Math.sqrt(dx * dx + dy * dy) <= size / 2) {
-        setPixel(x, y, [239, 68, 68, 255]);
+        setPixel(x, y, UNREAD_BADGE_COLOR);
       }
     }
   }
@@ -135,7 +138,7 @@ const createOverlayIcon = (count: number) => {
             setPixel(
               characterX + columnIndex * scale + x,
               startY + rowIndex * scale + y,
-              [255, 255, 255, 255],
+              UNREAD_BADGE_TEXT_COLOR,
             );
           }
         }

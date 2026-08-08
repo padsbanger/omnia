@@ -263,9 +263,10 @@ const Sidemenu = () => {
                 <span
                   key={unreadCounts[route.id]} // Key ensures re-animation on count change
                   className="absolute top-1 right-1
-                    bg-red-500 text-white text-sm rounded-full px-1 min-w-5 h-5 flex items-center justify-center
+                    text-white text-sm rounded-full px-1 min-w-5 h-5 flex items-center justify-center
                     animate-[fadeIn_0.3s_ease-out]
                   "
+                  style={{ backgroundColor: "#ef4444" }}
                 >
                   {unreadCounts[route.id]}
                 </span>
