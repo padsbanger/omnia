@@ -45,6 +45,36 @@ const buildRouteId = (label: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "")}-${Date.now().toString(36)}`;
 
+const getHostname = (url: string) => {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return null;
+  }
+};
+
+const buildRoute = (
+  label: string,
+  application: ApplicationKey,
+  loadURL: string,
+  hostname: string,
+): Route => {
+  const navigationConfig = getRouteNavigationConfig(application, hostname);
+  const routeId = buildRouteId(label);
+
+  return {
+    id: routeId,
+    label: label.trim(),
+    icon: application,
+    path: `/${routeId}`,
+    loadURL,
+    partition: `persist:user-${routeId}`,
+    isHibernated: false,
+    internalHosts: navigationConfig.internalHosts,
+    openExternalLinksInBrowser: navigationConfig.openExternalLinksInBrowser,
+  };
+};
+
 const CreateNewRouteForm = ({
   closeDrawer,
   onCreateRoute,
@@ -77,16 +107,30 @@ const CreateNewRouteForm = ({
     return `https://${trimmed}`;
   };
 
+  const createLocalRoute = async (route: Route) => {
+    const result = await window.electronAPI.invoke("create-route-view", {
+      route,
+    });
+    if (!result?.success) return false;
+
+    addRoute(route);
+    setActiveTab(route.id);
+    navigate(route.path);
+    setActiveDrawer(null);
+    return true;
+  };
+
+  const createRouteInWorkspace = (route: Route) =>
+    onCreateRoute ? onCreateRoute(route) : createLocalRoute(route);
+
   const handleCreateRoute = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const normalizedUrl = normalizeUrl(url);
     if (!normalizedUrl) return;
 
-    let hostname = "";
-    try {
-      hostname = new URL(normalizedUrl).hostname;
-    } catch {
+    const hostname = getHostname(normalizedUrl);
+    if (!hostname) {
       setError("Enter a valid URL.");
       return;
     }
@@ -94,39 +138,11 @@ const CreateNewRouteForm = ({
     setError(null);
     setIsSubmitting(true);
 
-    const navigationConfig = getRouteNavigationConfig(application, hostname);
-
-    const routeId = buildRouteId(label);
-    const route: Route = {
-      id: routeId,
-      label: label.trim(),
-      icon: application,
-      path: `/${routeId}`,
-      loadURL: normalizedUrl,
-      partition: `persist:user-${routeId}`,
-      isHibernated: false,
-      internalHosts: navigationConfig.internalHosts,
-      openExternalLinksInBrowser: navigationConfig.openExternalLinksInBrowser,
-    };
+    const route = buildRoute(label, application, normalizedUrl, hostname);
 
     try {
-      if (onCreateRoute) {
-        const created = await onCreateRoute(route);
-        if (created) {
-          closeDrawer();
-        }
-        return;
-      }
-
-      const result = await window.electronAPI.invoke("create-route-view", {
-        route,
-      });
-
-      if (result?.success) {
-        addRoute(route);
-        setActiveTab(route.id);
-        navigate(route.path);
-        setActiveDrawer(null);
+      const wasCreated = await createRouteInWorkspace(route);
+      if (wasCreated) {
         closeDrawer();
       }
     } catch (nextError) {

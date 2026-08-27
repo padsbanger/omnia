@@ -121,6 +121,21 @@ describe('ManageRoutesDrawer', () => {
     });
   });
 
+  it('keeps a hibernated route unchanged when Electron cannot recreate its view', async () => {
+    (window.electronAPI.invoke as ReturnType<typeof vi.fn>).mockResolvedValue({ success: false });
+    renderDrawer({ routes: [createRoute({ isHibernated: true })] });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Restore' }));
+
+    await waitFor(() => {
+      expect(window.electronAPI.invoke).toHaveBeenCalledWith(
+        'create-route-view',
+        expect.anything(),
+      );
+    });
+    expect(mocks.store.setRouteHibernation).not.toHaveBeenCalled();
+  });
+
   it('deletes the active route, selects a fallback, and navigates to it', async () => {
     renderDrawer();
     fireEvent.click(screen.getAllByRole('button', { name: 'delete' })[0]);
@@ -130,6 +145,17 @@ describe('ManageRoutesDrawer', () => {
       expect(mocks.store.setActiveTab).toHaveBeenCalledWith('route-2');
       expect(mocks.navigate).toHaveBeenCalledWith('/route-2');
     });
+  });
+
+  it('deletes an inactive route without changing the selected route', async () => {
+    renderDrawer();
+    fireEvent.click(screen.getAllByRole('button', { name: 'delete' })[1]);
+
+    await waitFor(() => {
+      expect(mocks.store.removeRoute).toHaveBeenCalledWith('route-2');
+    });
+    expect(mocks.store.setActiveTab).not.toHaveBeenCalled();
+    expect(mocks.navigate).not.toHaveBeenCalled();
   });
 
   it('validates and saves edited route labels', async () => {
@@ -147,5 +173,39 @@ describe('ManageRoutesDrawer', () => {
     await waitFor(() => {
       expect(onUpdateRouteLabel).toHaveBeenCalledWith('route-1', 'Renamed route');
     });
+  });
+
+  it('keeps editing open and explains when the backend rejects a label change', async () => {
+    const onUpdateRouteLabel = vi.fn(async () => false);
+    renderDrawer({ onUpdateRouteLabel });
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Rename' })[0]);
+    fireEvent.change(screen.getByDisplayValue('Route 1'), { target: { value: 'Blocked' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('Failed to update route label.')).toBeTruthy();
+  });
+
+  it('switches layouts through the supplied drawer callback', () => {
+    const onWindowLayoutChange = vi.fn();
+    renderDrawer({ onWindowLayoutChange });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Columns' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Matrix' }));
+
+    expect(onWindowLayoutChange).toHaveBeenNthCalledWith(1, 'spread');
+    expect(onWindowLayoutChange).toHaveBeenNthCalledWith(2, 'matrix');
+  });
+
+  it('shows offline guidance while preserving saved routes', () => {
+    renderDrawer({ isOffline: true });
+
+    expect(screen.getByText(/Offline mode: saved routes are available/)).toBeTruthy();
+  });
+
+  it('uses the store-backed empty state when drawer route props are omitted', () => {
+    render(<ManageRoutesDrawer closeDrawer={vi.fn()} />);
+
+    expect(screen.getByText('No routes yet.')).toBeTruthy();
   });
 });

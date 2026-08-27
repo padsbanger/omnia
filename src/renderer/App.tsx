@@ -22,8 +22,10 @@ import { useAppStore, useAuthStore } from "./store";
 import { useSessionVerification } from "./hooks/useSessionVerification";
 import { shouldShowAuthenticationLoader } from "./sessionVerification";
 
-const isDrawerKind = (value: string | null): value is DrawerKind =>
-  value === "create" || value === "manage" || value === "settings";
+const DRAWER_KINDS: DrawerKind[] = ["create", "manage", "settings"];
+
+export const isDrawerKind = (value: string | null): value is DrawerKind =>
+  DRAWER_KINDS.includes(value as DrawerKind);
 
 const getActiveTab = () => useAppStore.getState().activeTab;
 
@@ -31,7 +33,7 @@ const hasCachedWorkspace = () =>
   useAppStore.getState().routes.length > 0 &&
   Boolean(useAuthStore.getState().user);
 
-function MainApp() {
+export function MainApp() {
   const navigate = useNavigate();
   const location = useLocation();
   const previousDrawerRef = useRef<DrawerKind | null>(null);

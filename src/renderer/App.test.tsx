@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { cleanup, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -27,8 +28,16 @@ vi.mock('./components/AuthScreen', () => ({
     <div>auth-screen:{String(hasCachedRoutes)}</div>
   ),
 }));
+vi.mock('./components/Layout', () => ({
+  __esModule: true,
+  default: ({ children }: React.PropsWithChildren) => <main>{children}</main>,
+}));
+vi.mock('./components/SpreadWindows', () => ({
+  __esModule: true,
+  default: () => <div>spread-windows</div>,
+}));
 
-import { AuthGate } from './App';
+import { AuthGate, isDrawerKind, MainApp } from './App';
 
 describe('AuthGate', () => {
   afterEach(cleanup);
@@ -71,5 +80,35 @@ describe('AuthGate', () => {
     render(<AuthGate />);
 
     expect(screen.getByText('auth-screen:true')).toBeTruthy();
+  });
+
+  it('renders spread layouts and recognizes valid drawer locations', () => {
+    Object.assign(window, {
+      electronAPI: {
+        invoke: vi.fn(async () => ({ success: true })),
+        onFromMain: vi.fn(() => vi.fn()),
+      },
+    });
+    mocks.appState = {
+      ...mocks.appState,
+      activeDrawer: null,
+      activeTab: null,
+      addRoute: vi.fn(),
+      isOffline: false,
+      removeRoute: vi.fn(),
+      routes: [],
+      setActiveDrawer: vi.fn(),
+      setRouteHibernation: vi.fn(),
+      setWindowLayout: vi.fn(),
+      updateRouteLabel: vi.fn(),
+      updateUnreadCount: vi.fn(),
+      windowLayout: 'spread',
+    };
+
+    render(<MemoryRouter><MainApp /></MemoryRouter>);
+
+    expect(screen.getByText('spread-windows')).toBeTruthy();
+    expect(isDrawerKind('manage')).toBe(true);
+    expect(isDrawerKind('unknown')).toBe(false);
   });
 });

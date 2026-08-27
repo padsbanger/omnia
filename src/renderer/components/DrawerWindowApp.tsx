@@ -13,8 +13,10 @@ import { createRoute, deleteRoute, updateRoute } from "../api/routes";
 import { createLocalRouteFromApiRoute } from "../../common/routeMapping";
 import { useAuthStore } from "../store";
 
-const isDrawerKind = (value: string | null): value is DrawerKind =>
-  value === "create" || value === "manage" || value === "settings";
+const DRAWER_KINDS: DrawerKind[] = ["create", "manage", "settings"];
+
+export const isDrawerKind = (value: string | null): value is DrawerKind =>
+  DRAWER_KINDS.includes(value as DrawerKind);
 
 const DrawerWindowApp = () => {
   const drawer = useMemo(() => {
