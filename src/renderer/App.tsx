@@ -15,37 +15,21 @@ import SpreadWindows from "./components/SpreadWindows";
 import DrawerWindowApp from "./components/DrawerWindowApp";
 import Layout from "./components/Layout";
 import AuthScreen from "./components/AuthScreen";
-import {
-  AuthRequestError,
-  getCurrentUser,
-  refreshSession,
-} from "./api/auth";
+import { getCurrentUser, refreshSession } from "./api/auth";
 import { listRoutes } from "./api/routes";
 import { createLocalRouteFromApiRoute } from "../common/routeMapping";
 import { useAppStore, useAuthStore } from "./store";
+import { useSessionVerification } from "./hooks/useSessionVerification";
+import { shouldShowAuthenticationLoader } from "./sessionVerification";
 
 const isDrawerKind = (value: string | null): value is DrawerKind =>
   value === "create" || value === "manage" || value === "settings";
 
-const BACKEND_RECONNECT_DELAY_MS = 15_000;
-const TOKEN_REFRESH_LEEWAY_MS = 60_000;
+const getActiveTab = () => useAppStore.getState().activeTab;
 
-const getTokenExpirationMs = (token: string) => {
-  try {
-    const payloadPart = token.split(".")[1];
-    if (!payloadPart) return null;
-
-    const normalized = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
-    const padded = normalized.padEnd(
-      normalized.length + ((4 - (normalized.length % 4)) % 4),
-      "=",
-    );
-    const payload = JSON.parse(window.atob(padded)) as { exp?: unknown };
-    return typeof payload.exp === "number" ? payload.exp * 1_000 : null;
-  } catch {
-    return null;
-  }
-};
+const hasCachedWorkspace = () =>
+  useAppStore.getState().routes.length > 0 &&
+  Boolean(useAuthStore.getState().user);
 
 function MainApp() {
   const navigate = useNavigate();
@@ -259,7 +243,7 @@ function MainApp() {
   );
 }
 
-function AuthGate() {
+export function AuthGate() {
   const {
     clearSession,
     hasHydrated,
@@ -274,192 +258,38 @@ function AuthGate() {
   const routes = useAppStore((state) => state.routes);
   const isOffline = useAppStore((state) => state.isOffline);
   const setOfflineMode = useAppStore((state) => state.setOfflineMode);
-  const [isVerifying, setIsVerifying] = React.useState(true);
-  const [verifiedToken, setVerifiedToken] = React.useState<string | null>(null);
-  const [verificationAttempt, setVerificationAttempt] = React.useState(0);
-  // The blocking loader is only for restoring a session when the app first
-  // opens. Re-validating an already-visible session must not unmount MainApp:
-  // route BrowserViews stay alive independently from React and would otherwise
-  // leave the sidebar area looking blank while the check is in flight.
-  const hasCompletedInitialVerificationRef = React.useRef(false);
-  const reconnectTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
-
-  useEffect(() => {
-    let isMounted = true;
-    const isReconnectAttempt = isOffline && verifiedToken === token;
-
-    if (reconnectTimerRef.current) {
-      clearTimeout(reconnectTimerRef.current);
-      reconnectTimerRef.current = null;
-    }
-
-    if (!hasHydrated) {
-      return () => {
-        isMounted = false;
-      };
-    }
-
-    if (!token) {
-      hasCompletedInitialVerificationRef.current = false;
-      setVerifiedToken(null);
-      setOfflineMode(false);
-      setIsVerifying(false);
-      return () => {
-        isMounted = false;
-      };
-    }
-
-    if (!isReconnectAttempt) {
-      setVerifiedToken(null);
-      setOfflineMode(false);
-      if (!hasCompletedInitialVerificationRef.current) {
-        setIsVerifying(true);
-      }
-    }
-
-    const scheduleReconnect = () => {
-      reconnectTimerRef.current = setTimeout(() => {
-        reconnectTimerRef.current = null;
-        setVerificationAttempt((attempt) => attempt + 1);
-      }, BACKEND_RECONNECT_DELAY_MS);
-    };
-
-    const handleSessionFailure = (error: unknown) => {
-      if (!isMounted) return;
-
-      if (
-        error instanceof AuthRequestError &&
-        (error.status === 400 || error.status === 401)
-      ) {
-        setVerifiedToken(null);
-        setOfflineMode(false);
-        clearSession();
-        return;
-      }
-
-      const hasCachedWorkspace =
-        useAppStore.getState().routes.length > 0 &&
-        Boolean(useAuthStore.getState().user);
-
-      if (hasCachedWorkspace) {
-        setOfflineMode(true);
-        setVerifiedToken(token);
-        scheduleReconnect();
-        return;
-      }
-
-      setVerifiedToken(null);
-      setOfflineMode(false);
-      clearSession();
-    };
-
-    const verifySession = async () => {
-      try {
-        const expiresAt = getTokenExpirationMs(token);
-        if (expiresAt !== null && expiresAt <= Date.now() + TOKEN_REFRESH_LEEWAY_MS) {
-          if (!refreshToken) {
-            setVerifiedToken(null);
-            setOfflineMode(false);
-            clearSession();
-            return;
-          }
-
-          const refreshedSession = await refreshSession(refreshToken);
-          if (!isMounted) return;
-          setTokens(refreshedSession.token, refreshedSession.refreshToken);
-          return;
-        }
-
-        const { user: currentUser } = await getCurrentUser(token);
-        if (!isMounted) return;
-        setSession(token, currentUser);
-
-        const { routes: remoteRoutes } = await listRoutes(token);
-        if (!isMounted) return;
-
-        const appRoutes = remoteRoutes
-          .slice()
-          .sort((a, b) => a.order - b.order)
-          .map(createLocalRouteFromApiRoute);
-
-        updateRoutesOrder(appRoutes);
-        const activeTab = useAppStore.getState().activeTab;
-        if (!appRoutes.some((route) => route.id === activeTab)) {
-          setActiveTab(appRoutes[0]?.id ?? null);
-        }
-
-        setOfflineMode(false);
-        setVerifiedToken(token);
-      } catch (error) {
-        handleSessionFailure(error);
-      } finally {
-        if (
-          isMounted &&
-          !isReconnectAttempt &&
-          !hasCompletedInitialVerificationRef.current
-        ) {
-          hasCompletedInitialVerificationRef.current = true;
-          setIsVerifying(false);
-        }
-      }
-    };
-
-    void verifySession();
-
-    return () => {
-      isMounted = false;
-      if (reconnectTimerRef.current) {
-        clearTimeout(reconnectTimerRef.current);
-        reconnectTimerRef.current = null;
-      }
-    };
-  }, [
-    clearSession,
+  const {
+    hasCompletedInitialVerification,
+    isVerifying,
+    verifiedToken,
+  } = useSessionVerification({
     hasHydrated,
+    token,
     refreshToken,
+    isOffline,
+    clearSession,
+    setTokens,
+    setSession,
+    updateRoutesOrder,
+    getActiveTab,
     setActiveTab,
     setOfflineMode,
-    setSession,
-    setTokens,
-    token,
-    updateRoutesOrder,
-    verificationAttempt,
-  ]);
-
-  useEffect(() => {
-    if (!token || !refreshToken) return;
-
-    const expiresAt = getTokenExpirationMs(token);
-    if (expiresAt === null) return;
-
-    const refreshDelay = Math.max(
-      0,
-      expiresAt - Date.now() - TOKEN_REFRESH_LEEWAY_MS,
-    );
-    const timer = setTimeout(() => {
-      setVerificationAttempt((attempt) => attempt + 1);
-    }, refreshDelay);
-
-    return () => clearTimeout(timer);
-  }, [refreshToken, token]);
-
-  useEffect(() => {
-    if (!isOffline || !token) return;
-
-    const retryWhenOnline = () => {
-      setVerificationAttempt((attempt) => attempt + 1);
-    };
-
-    window.addEventListener("online", retryWhenOnline);
-    return () => window.removeEventListener("online", retryWhenOnline);
-  }, [isOffline, token]);
+    hasCachedWorkspace,
+    refreshSession,
+    getCurrentUser,
+    listRoutes,
+    createLocalRoute: createLocalRouteFromApiRoute,
+  });
 
   if (
-    !hasHydrated ||
-    (!hasCompletedInitialVerificationRef.current &&
-      (isVerifying || (token && !isOffline && verifiedToken !== token)))
+    shouldShowAuthenticationLoader({
+      hasCompletedInitialVerification,
+      hasHydrated,
+      isOffline,
+      isVerifying,
+      token,
+      verifiedToken,
+    })
   ) {
     return (
       <div className="flex h-full w-full items-center justify-center bg-white">
@@ -467,7 +297,6 @@ function AuthGate() {
           aria-label="Loading"
           className="h-10 w-10 text-slate-700"
           size="lg"
-          color="default"
         />
       </div>
     );

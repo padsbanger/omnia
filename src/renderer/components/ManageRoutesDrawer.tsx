@@ -261,7 +261,7 @@ const ManageRoutesDrawer = ({
                   <Button
                     className="bg-blue-600 text-white"
                     isDisabled={!normalizedEditingLabel.length}
-                    isLoading={savingRouteId === route.id}
+                    isPending={savingRouteId === route.id}
                     onClick={() => void commitRouteLabel(route)}
                   >
                     Save

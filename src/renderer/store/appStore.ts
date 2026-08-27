@@ -117,7 +117,9 @@ export const useAppStore = create<AppState>()(
         unreadCounts: {},
         activeDrawer: null,
         isOffline: false,
-        routes: state.routes.map(({ memoryUsage, ...route }) => route),
+        routes: state.routes.map(({ memoryUsage: _memoryUsage, ...route }) =>
+          route,
+        ),
       }),
     },
   ),

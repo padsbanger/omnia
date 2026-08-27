@@ -20,7 +20,7 @@ const Window = ({ route }: WindowProps) => {
 
     const unsubscribe = window.electronAPI.onFromMain(
       "tab-title-update",
-      (data) => {
+      (data: { tabId: string; title: string }) => {
         if (data.tabId === route.id) {
           console.log("Title updated for this tab:", data.title);
         }

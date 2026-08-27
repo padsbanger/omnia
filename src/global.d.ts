@@ -1,11 +1,19 @@
+type DefaultIpcResult = {
+  success?: boolean;
+  [key: string]: unknown;
+};
+
 declare global {
   interface Window {
     electronAPI: {
-      sendToMain: (channel: string, data: any) => void;
-      invoke: (channel: string, data?: any) => Promise<any>;
-      onFromMain: (
+      sendToMain: (channel: string, data: unknown) => void;
+      invoke: <Result extends object = DefaultIpcResult>(
         channel: string,
-        callback: (...args: any[]) => void,
+        data?: unknown,
+      ) => Promise<Result>;
+      onFromMain: <Args extends unknown[]>(
+        channel: string,
+        callback: (...args: Args) => void,
       ) => (() => void) | undefined;
     };
   }

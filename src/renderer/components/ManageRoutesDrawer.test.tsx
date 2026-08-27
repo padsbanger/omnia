@@ -1,0 +1,151 @@
+// @vitest-environment jsdom
+import React from 'react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Route } from '../../common/routes';
+
+const mocks = vi.hoisted(() => ({
+  navigate: vi.fn(),
+  store: {
+    removeRoute: vi.fn(),
+    setActiveTab: vi.fn(),
+    setRouteHibernation: vi.fn(),
+    setWindowLayout: vi.fn(),
+    updateRouteLabel: vi.fn(),
+    updateUnreadCount: vi.fn(),
+  },
+}));
+
+vi.mock('@heroui/react', () => {
+  const Button = ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <button {...props}>{children}</button>
+  );
+  const Tooltip = Object.assign(
+    ({ children }: React.PropsWithChildren) => <>{children}</>,
+    { Content: ({ children }: React.PropsWithChildren) => <>{children}</> },
+  );
+
+  return {
+    Button,
+    Description: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
+    Label: ({ children }: React.PropsWithChildren) => <span>{children}</span>,
+    Tooltip,
+  };
+});
+
+vi.mock('react-router-dom', () => ({ useNavigate: () => mocks.navigate }));
+vi.mock('../store', () => ({
+  useAppStore: () => ({
+    routes: [],
+    activeTab: null,
+    windowLayout: 'single',
+    ...mocks.store,
+  }),
+}));
+vi.mock('./WindowIcon', () => ({ WindowIcon: () => <span>icon</span> }));
+vi.mock('react-icons/io5', () => ({ IoTrashBin: () => <span>clear</span> }));
+vi.mock('react-icons/io', () => ({ IoIosRefresh: () => <span>refresh</span> }));
+vi.mock('react-icons/ri', () => ({ RiCloseFill: () => <span>delete</span> }));
+
+import ManageRoutesDrawer from './ManageRoutesDrawer';
+
+const createRoute = (overrides: Partial<Route> = {}): Route => ({
+  id: 'route-1',
+  path: '/route-1',
+  icon: 'link',
+  label: 'Route 1',
+  loadURL: 'https://route-1.example.com',
+  partition: 'persist:route-1',
+  ...overrides,
+});
+
+const renderDrawer = (props: Partial<React.ComponentProps<typeof ManageRoutesDrawer>> = {}) =>
+  render(
+    <ManageRoutesDrawer
+      closeDrawer={vi.fn()}
+      routes={[createRoute(), createRoute({ id: 'route-2', path: '/route-2', label: 'Route 2' })]}
+      activeTab="route-1"
+      windowLayout="single"
+      {...props}
+    />,
+  );
+
+describe('ManageRoutesDrawer', () => {
+  afterEach(cleanup);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    Object.assign(window, {
+      electronAPI: { invoke: vi.fn(async () => ({ success: true })) },
+    });
+  });
+
+  it('delegates hibernation and deletion when drawer callbacks are supplied', async () => {
+    const onToggleHibernation = vi.fn(async () => undefined);
+    const onDeleteRoute = vi.fn(async () => undefined);
+    renderDrawer({ onToggleHibernation, onDeleteRoute });
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Hibernate' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'delete' }).at(-1)!);
+
+    await waitFor(() => {
+      expect(onToggleHibernation).toHaveBeenCalledWith('route-1');
+      expect(onDeleteRoute).toHaveBeenCalledWith('route-2');
+    });
+  });
+
+  it('hibernates an active route through Electron and clears its unread count', async () => {
+    renderDrawer();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Hibernate' })[0]);
+
+    await waitFor(() => {
+      expect(window.electronAPI.invoke).toHaveBeenCalledWith(
+        'hibernate-route-view',
+        expect.objectContaining({ route: expect.objectContaining({ id: 'route-1' }) }),
+      );
+      expect(mocks.store.setRouteHibernation).toHaveBeenCalledWith('route-1', true);
+      expect(mocks.store.updateUnreadCount).toHaveBeenCalledWith('route-1', 0);
+    });
+  });
+
+  it('restores a hibernated active route and activates it in the single layout', async () => {
+    renderDrawer({ routes: [createRoute({ isHibernated: true })] });
+    fireEvent.click(screen.getByRole('button', { name: 'Restore' }));
+
+    await waitFor(() => {
+      expect(mocks.store.setRouteHibernation).toHaveBeenCalledWith('route-1', false);
+      expect(window.electronAPI.invoke).toHaveBeenCalledWith(
+        'activate-tab',
+        expect.anything(),
+      );
+    });
+  });
+
+  it('deletes the active route, selects a fallback, and navigates to it', async () => {
+    renderDrawer();
+    fireEvent.click(screen.getAllByRole('button', { name: 'delete' })[0]);
+
+    await waitFor(() => {
+      expect(mocks.store.removeRoute).toHaveBeenCalledWith('route-1');
+      expect(mocks.store.setActiveTab).toHaveBeenCalledWith('route-2');
+      expect(mocks.navigate).toHaveBeenCalledWith('/route-2');
+    });
+  });
+
+  it('validates and saves edited route labels', async () => {
+    const onUpdateRouteLabel = vi.fn(async () => true);
+    renderDrawer({ onUpdateRouteLabel });
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Rename' })[0]);
+    const input = screen.getByDisplayValue('Route 1');
+    fireEvent.change(input, { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(screen.getByText('Route label cannot be empty.')).toBeTruthy();
+
+    fireEvent.change(input, { target: { value: 'Renamed route' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => {
+      expect(onUpdateRouteLabel).toHaveBeenCalledWith('route-1', 'Renamed route');
+    });
+  });
+});

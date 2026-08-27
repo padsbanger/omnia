@@ -1,4 +1,8 @@
-import { contextBridge, ipcRenderer } from "electron";
+import {
+  contextBridge,
+  ipcRenderer,
+  type IpcRendererEvent,
+} from "electron";
 
 const validChannels = [
   "page-title-updated",
@@ -44,22 +48,26 @@ const validChannels = [
 ];
 
 contextBridge.exposeInMainWorld("electronAPI", {
-  sendToMain: (channel: string, data: any) => {
+  sendToMain: (channel: string, data: unknown) => {
     if (validChannels.includes(channel)) {
       ipcRenderer.send(channel, data);
     }
   },
 
-  invoke: (channel: string, data: any) => {
+  invoke: (channel: string, data: unknown) => {
     if (validChannels.includes(channel)) {
       return ipcRenderer.invoke(channel, data);
     }
     return Promise.reject(new Error("Invalid channel"));
   },
 
-  onFromMain: (channel: string, callback: (...args: any[]) => void) => {
+  onFromMain: (
+    channel: string,
+    callback: (...args: unknown[]) => void,
+  ) => {
     if (validChannels.includes(channel)) {
-      const subscription = (_event: any, ...args: any[]) => callback(...args);
+      const subscription = (_event: IpcRendererEvent, ...args: unknown[]) =>
+        callback(...args);
       ipcRenderer.on(channel, subscription);
       return () => ipcRenderer.removeListener(channel, subscription);
     }

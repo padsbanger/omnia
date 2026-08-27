@@ -155,7 +155,7 @@ const Sidemenu = () => {
     );
 
     void window.electronAPI
-      .invoke("get-unread-state")
+      .invoke<UnreadState>("get-unread-state")
       .then(applyUnreadState)
       .catch((error) => {
         console.error("Failed to load unread state", error);

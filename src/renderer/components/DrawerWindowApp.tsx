@@ -26,8 +26,8 @@ const DrawerWindowApp = () => {
 
   useEffect(() => {
     void window.electronAPI
-      .invoke("get-drawer-state")
-      .then((nextState: DrawerStateSnapshot) => {
+      .invoke<DrawerStateSnapshot>("get-drawer-state")
+      .then((nextState) => {
         setState(nextState);
       });
   }, []);
@@ -123,7 +123,6 @@ const DrawerWindowApp = () => {
           aria-label="Loading routes"
           className="h-10 w-10 text-slate-700"
           size="lg"
-          color="default"
         />
       </div>
     );

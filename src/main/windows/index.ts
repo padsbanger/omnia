@@ -581,7 +581,7 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
       });
     });
 
-    webContents.on('media-ended', () => {
+    webContents.on('media-paused', () => {
       const existing = audioStates.get(route.id);
       if (existing) {
         existing.isPlaying = false;
@@ -629,7 +629,7 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
     webContents.on('dom-ready', injectUnreadTracker);
     webContents.on('did-finish-load', injectUnreadTracker);
 
-    webContents.on('page-title-updated', (_event: any, title: string) => {
+    webContents.on('page-title-updated', (_event, title) => {
       const unread = extractUnreadFromTitle(title);
       setRouteUnreadCount(
         route.id,

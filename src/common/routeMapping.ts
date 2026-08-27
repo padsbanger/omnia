@@ -23,121 +23,94 @@ export type ApiRoute = {
   updatedAt: string;
 };
 
-type RouteNavigationConfig = {
+export type RouteNavigationConfig = {
   internalHosts: string[];
   openExternalLinksInBrowser: boolean;
 };
 
-const getRouteNavigationConfig = (
+type NavigationRule = {
+  icon: string;
+  internalHosts: string[];
+  hostSuffixes?: string[];
+  exactHosts?: string[];
+};
+
+const ROUTE_NAVIGATION_RULES: NavigationRule[] = [
+  {
+    icon: "gmail",
+    internalHosts: GOOGLE_HOSTS,
+    hostSuffixes: ["google.com", "gmail.com", "googleusercontent.com", "gstatic.com"],
+  },
+  {
+    icon: "discord",
+    internalHosts: ["discord.com", "discordapp.com"],
+    hostSuffixes: ["discord.com"],
+  },
+  {
+    icon: "slack",
+    internalHosts: [...SLACK_HOSTS, ...GOOGLE_HOSTS],
+    hostSuffixes: ["slack.com"],
+  },
+  {
+    icon: "telegram",
+    internalHosts: TELEGRAM_HOSTS,
+    hostSuffixes: ["telegram.org", "telegram.me", "telegra.ph"],
+    exactHosts: ["t.me"],
+  },
+  {
+    icon: "whatsapp",
+    internalHosts: WHATSAPP_HOSTS,
+    hostSuffixes: ["whatsapp.com", "whatsapp.net"],
+    exactHosts: ["wa.me"],
+  },
+  {
+    icon: "teams",
+    internalHosts: MICROSOFT_TEAMS_HOSTS,
+    hostSuffixes: [
+      "teams.microsoft.com",
+      "teams.live.com",
+      "microsoftonline.com",
+      "office.com",
+    ],
+  },
+  {
+    icon: "facebook",
+    internalHosts: FACEBOOK_HOSTS,
+    hostSuffixes: ["facebook.com", "messenger.com"],
+  },
+  {
+    icon: "tradingview",
+    internalHosts: TRADINGVIEW_HOSTS,
+    hostSuffixes: ["tradingview.com"],
+  },
+  {
+    icon: "twitter",
+    internalHosts: [...TWITTER_HOSTS, ...GOOGLE_HOSTS],
+    hostSuffixes: ["twitter.com", "x.com"],
+  },
+  {
+    icon: "spotify",
+    internalHosts: SPOTIFY_HOSTS,
+    hostSuffixes: ["spotify.com"],
+  },
+];
+
+const matchesRouteHost = (hostname: string, rule: NavigationRule) =>
+  rule.hostSuffixes?.some((suffix) => hostname.endsWith(suffix)) ||
+  rule.exactHosts?.includes(hostname) ||
+  false;
+
+export const getRouteNavigationConfig = (
   icon: string,
   hostname: string,
 ): RouteNavigationConfig => {
   const lowerHost = hostname.toLowerCase();
-
-  const isGoogleHost =
-    lowerHost.endsWith("google.com") ||
-    lowerHost.endsWith("gmail.com") ||
-    lowerHost.endsWith("googleusercontent.com") ||
-    lowerHost.endsWith("gstatic.com");
-
-  if (icon === "gmail" || isGoogleHost) {
-    return {
-      internalHosts: GOOGLE_HOSTS,
-      openExternalLinksInBrowser: true,
-    };
-  }
-
-  if (icon === "discord" || lowerHost.endsWith("discord.com")) {
-    return {
-      internalHosts: ["discord.com", "discordapp.com"],
-      openExternalLinksInBrowser: true,
-    };
-  }
-
-  if (icon === "slack" || lowerHost.endsWith("slack.com")) {
-    return {
-      internalHosts: [...SLACK_HOSTS, ...GOOGLE_HOSTS],
-      openExternalLinksInBrowser: true,
-    };
-  }
-
-  if (
-    icon === "telegram" ||
-    lowerHost.endsWith("telegram.org") ||
-    lowerHost.endsWith("telegram.me") ||
-    lowerHost === "t.me" ||
-    lowerHost.endsWith("telegra.ph")
-  ) {
-    return {
-      internalHosts: TELEGRAM_HOSTS,
-      openExternalLinksInBrowser: true,
-    };
-  }
-
-  if (
-    icon === "whatsapp" ||
-    lowerHost === "web.whatsapp.com" ||
-    lowerHost.endsWith("whatsapp.com") ||
-    lowerHost === "wa.me" ||
-    lowerHost.endsWith("whatsapp.net")
-  ) {
-    return {
-      internalHosts: WHATSAPP_HOSTS,
-      openExternalLinksInBrowser: true,
-    };
-  }
-
-  if (
-    icon === "teams" ||
-    lowerHost.endsWith("teams.microsoft.com") ||
-    lowerHost.endsWith("teams.live.com") ||
-    lowerHost.endsWith("microsoftonline.com") ||
-    lowerHost.endsWith("office.com")
-  ) {
-    return {
-      internalHosts: MICROSOFT_TEAMS_HOSTS,
-      openExternalLinksInBrowser: true,
-    };
-  }
-
-  if (
-    icon === "facebook" ||
-    lowerHost.endsWith("facebook.com") ||
-    lowerHost.endsWith("messenger.com")
-  ) {
-    return {
-      internalHosts: FACEBOOK_HOSTS,
-      openExternalLinksInBrowser: true,
-    };
-  }
-
-  if (icon === "tradingview" || lowerHost.endsWith("tradingview.com")) {
-    return {
-      internalHosts: TRADINGVIEW_HOSTS,
-      openExternalLinksInBrowser: true,
-    };
-  }
-
-  if (
-    icon === "twitter" ||
-    lowerHost.endsWith("twitter.com") ||
-    lowerHost.endsWith("x.com")
-  ) {
-    return {
-      internalHosts: [...TWITTER_HOSTS, ...GOOGLE_HOSTS],
-      openExternalLinksInBrowser: true,
-    };
-  }
-
-  if (icon === "spotify" || lowerHost.endsWith("spotify.com")) {
-    return {
-      internalHosts: SPOTIFY_HOSTS,
-      openExternalLinksInBrowser: true,
-    };
-  }
+  const matchingRule = ROUTE_NAVIGATION_RULES.find(
+    (rule) => rule.icon === icon || matchesRouteHost(lowerHost, rule),
+  );
 
   return {
-    internalHosts: [hostname],
+    internalHosts: matchingRule?.internalHosts ?? [hostname],
     openExternalLinksInBrowser: true,
   };
 };

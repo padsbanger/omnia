@@ -1,10 +1,24 @@
-import { Notification } from "electron";
+import {
+  Notification,
+  type BrowserWindow,
+  type NotificationConstructorOptions,
+} from "electron";
+
+type MainNotificationOptions = Pick<
+  NotificationConstructorOptions,
+  "hasReply" | "icon" | "silent" | "urgency"
+>;
+
+type MainNotificationWindow = Pick<
+  BrowserWindow,
+  "focus" | "isMinimized" | "restore" | "show"
+>;
 
 export function showMainNotification(
   title: string,
   body: string,
-  options: any = {},
-  mainWindow: any,
+  options: MainNotificationOptions = {},
+  mainWindow: MainNotificationWindow | null,
 ) {
   if (!Notification.isSupported()) {
     console.warn("Notifications not supported on this platform");

@@ -39,8 +39,8 @@ const SettingsDrawer = ({ closeDrawer }: SettingsDrawerProps) => {
     let isMounted = true;
 
     void window.electronAPI
-      .invoke("get-app-settings")
-      .then((nextSettings: AppSettings) => {
+      .invoke<AppSettings>("get-app-settings")
+      .then((nextSettings) => {
         if (isMounted) {
           setSettings(nextSettings);
         }

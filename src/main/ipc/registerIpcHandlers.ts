@@ -80,9 +80,9 @@ const loginWithAuthentik = async (parent: BrowserWindow | null) => {
         },
       });
 
-      const settle = (
-        callback: (value?: Awaited<ReturnType<typeof completeAuthorization>>) => void,
-        value?: Awaited<ReturnType<typeof completeAuthorization>>,
+      const settle = <Value>(
+        callback: (value: Value) => void,
+        value: Value,
       ) => {
         if (isSettled) return;
         isSettled = true;

@@ -2,27 +2,12 @@ import { useMemo, useState, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@heroui/react";
 import { Route } from "../../common/routes";
+import { getRouteNavigationConfig } from "../../common/routeMapping";
 import { useAppStore } from "../store";
-import {
-  GOOGLE_HOSTS,
-  FACEBOOK_HOSTS,
-  TWITTER_HOSTS,
-  SLACK_HOSTS,
-  MICROSOFT_TEAMS_HOSTS,
-  TRADINGVIEW_HOSTS,
-  SPOTIFY_HOSTS,
-  TELEGRAM_HOSTS,
-  WHATSAPP_HOSTS,
-} from "../../common/auth_hosts";
 
 type CreateNewRouteFormProps = {
   closeDrawer: () => void;
   onCreateRoute?: (route: Route) => Promise<boolean>;
-};
-
-type RouteNavigationConfig = {
-  internalHosts: string[];
-  openExternalLinksInBrowser: boolean;
 };
 
 type ApplicationKey =
@@ -59,121 +44,6 @@ const buildRouteId = (label: string) =>
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "")}-${Date.now().toString(36)}`;
-
-const getRouteNavigationConfig = (
-  icon: string,
-  hostname: string,
-): RouteNavigationConfig => {
-  const lowerHost = hostname.toLowerCase();
-
-  const isGoogleHost =
-    lowerHost.endsWith('google.com') ||
-    lowerHost.endsWith('gmail.com') ||
-    lowerHost.endsWith('googleusercontent.com') ||
-    lowerHost.endsWith('gstatic.com');
-
-  if (icon === 'gmail' || isGoogleHost) {
-    return {
-      internalHosts: GOOGLE_HOSTS,
-      openExternalLinksInBrowser: true,
-    };
-  }
-
-  if (icon === 'discord' || lowerHost.endsWith('discord.com')) {
-    return {
-      internalHosts: ['discord.com', 'discordapp.com'],
-      openExternalLinksInBrowser: true,
-    };
-  }
-
-  if (icon === 'slack' || lowerHost.endsWith('slack.com')) {
-    return {
-      internalHosts: [...SLACK_HOSTS, ...GOOGLE_HOSTS],
-      openExternalLinksInBrowser: true,
-    };
-  }
-
-  if (
-    icon === 'telegram' ||
-    lowerHost.endsWith('telegram.org') ||
-    lowerHost.endsWith('telegram.me') ||
-    lowerHost === 't.me' ||
-    lowerHost.endsWith('telegra.ph')
-  ) {
-    return {
-      internalHosts: TELEGRAM_HOSTS,
-      openExternalLinksInBrowser: true,
-    };
-  }
-
-  if (
-    icon === 'whatsapp' ||
-    lowerHost === 'web.whatsapp.com' ||
-    lowerHost.endsWith('whatsapp.com') ||
-    lowerHost === 'wa.me' ||
-    lowerHost.endsWith('whatsapp.net')
-  ) {
-    return {
-      internalHosts: WHATSAPP_HOSTS,
-      openExternalLinksInBrowser: true,
-    };
-  }
-
-  if (
-    icon === 'teams' ||
-    lowerHost.endsWith('teams.microsoft.com') ||
-    lowerHost.endsWith('teams.live.com') ||
-    lowerHost.endsWith('microsoftonline.com') ||
-    lowerHost.endsWith('office.com')
-  ) {
-    return {
-      internalHosts: MICROSOFT_TEAMS_HOSTS,
-      openExternalLinksInBrowser: true,
-    };
-  }
-
-  if (
-    icon === 'facebook' ||
-    lowerHost.endsWith('facebook.com') ||
-    lowerHost.endsWith('messenger.com')
-  ) {
-    return {
-      internalHosts: FACEBOOK_HOSTS,
-      openExternalLinksInBrowser: true,
-    };
-  }
-
-  if (icon === 'tradingview' || lowerHost.endsWith('tradingview.com')) {
-    return {
-      internalHosts: TRADINGVIEW_HOSTS,
-      openExternalLinksInBrowser: true,
-    };
-  }
-
-  if (
-    icon === 'twitter' ||
-    lowerHost.endsWith('twitter.com') ||
-    lowerHost.endsWith('x.com')
-  ) {
-    return {
-      internalHosts: [...TWITTER_HOSTS, ...GOOGLE_HOSTS],
-      openExternalLinksInBrowser: true,
-    };
-  }
-
-  // Added Spotify logic
-  if (icon === 'spotify' || lowerHost.endsWith('spotify.com')) {
-    return {
-      internalHosts: SPOTIFY_HOSTS,
-      openExternalLinksInBrowser: true,
-    };
-  }
-
-  return {
-    internalHosts: [hostname],
-    openExternalLinksInBrowser: true,
-  };
-};
 
 const CreateNewRouteForm = ({
   closeDrawer,
