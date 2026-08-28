@@ -1,12 +1,12 @@
-import { JSX } from "react";
-import { BiLogoGmail, BiLogoMicrosoftTeams } from "react-icons/bi";
-import { FaDiscord, FaTelegramPlane, FaWhatsapp } from "react-icons/fa";
-import { FaFacebookMessenger } from "react-icons/fa";
-import { SiClaude, SiOpenai, SiTradingview } from "react-icons/si";
-import { FaSquareXTwitter } from "react-icons/fa6";
+import { JSX } from 'react';
+import { BiLogoGmail, BiLogoMicrosoftTeams } from 'react-icons/bi';
+import { FaDiscord, FaTelegramPlane, FaWhatsapp } from 'react-icons/fa';
+import { FaFacebookMessenger } from 'react-icons/fa';
+import { SiClaude, SiOpenai, SiTradingview } from 'react-icons/si';
+import { FaSquareXTwitter } from 'react-icons/fa6';
 import { FaSpotify } from 'react-icons/fa';
 import { FaSlack } from 'react-icons/fa6';
-import { FiLink } from "react-icons/fi";
+import { FiLink } from 'react-icons/fi';
 
 const IconsDict: Record<string, JSX.Element> = {
   claude: <SiClaude />,
@@ -26,14 +26,10 @@ const IconsDict: Record<string, JSX.Element> = {
 
 export const WindowIcon = ({
   icon,
-  className,
+  className = 'text-3xl',
 }: {
   icon: string;
   className?: string;
 }) => {
-  return (
-    <span className={`text-3xl ${className}`}>
-      {IconsDict[icon] ?? IconsDict.link}
-    </span>
-  );
+  return <span className={className}>{IconsDict[icon] ?? IconsDict.link}</span>;
 };

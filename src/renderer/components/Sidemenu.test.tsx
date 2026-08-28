@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Route } from '../../common/routes';
 
@@ -9,15 +15,25 @@ const mocks = vi.hoisted(() => ({
   authState: {} as Record<string, unknown>,
   invoke: vi.fn(async (channel: string) =>
     channel === 'get-unread-state'
-      ? { total: 2, unreadCounts: [{ routeId: 'route-1', count: 2 }], revision: 1 }
+      ? {
+          total: 2,
+          unreadCounts: [{ routeId: 'route-1', count: 2 }],
+          revision: 1,
+        }
       : { success: true },
   ),
   onFromMain: vi.fn(() => vi.fn()),
 }));
 
 vi.mock('@heroui/react', () => {
-  const Button = ({ children, isDisabled, ...props }: React.PropsWithChildren<{ isDisabled?: boolean }>) => (
-    <button disabled={isDisabled} {...props}>{children}</button>
+  const Button = ({
+    children,
+    isDisabled,
+    ...props
+  }: React.PropsWithChildren<{ isDisabled?: boolean }>) => (
+    <button disabled={isDisabled} {...props}>
+      {children}
+    </button>
   );
   const Tooltip = Object.assign(
     ({ children }: React.PropsWithChildren) => <>{children}</>,
@@ -26,8 +42,14 @@ vi.mock('@heroui/react', () => {
   return { Button, Tooltip };
 });
 vi.mock('react-router-dom', () => ({
-  Link: ({ children, to, ...props }: React.PropsWithChildren<{ to: string }>) => (
-    <a href={to} {...props}>{children}</a>
+  Link: ({
+    children,
+    to,
+    ...props
+  }: React.PropsWithChildren<{ to: string }>) => (
+    <a href={to} {...props}>
+      {children}
+    </a>
   ),
 }));
 vi.mock('../store', () => ({
@@ -36,10 +58,12 @@ vi.mock('../store', () => ({
 }));
 vi.mock('../api/routes', () => ({ updateRoute: vi.fn() }));
 vi.mock('./WindowIcon', () => ({ WindowIcon: () => <span>icon</span> }));
-vi.mock('react-icons/io', () => ({ IoMdAdd: () => <span>add</span> }));
-vi.mock('react-icons/gi', () => ({ GiNightSleep: () => <span>sleep</span> }));
-vi.mock('react-icons/fa', () => ({ FaEdit: () => <span>edit</span> }));
-vi.mock('react-icons/fi', () => ({ FiLogOut: () => <span>logout</span> }));
+vi.mock('react-icons/md', () => ({
+  MdAdd: () => <span>add</span>,
+  MdLogout: () => <span>logout</span>,
+  MdOutlineBedtime: () => <span>sleep</span>,
+  MdTune: () => <span>manage</span>,
+}));
 
 import Sidemenu from './Sidemenu';
 
@@ -72,7 +96,11 @@ describe('Sidemenu', () => {
       clearRoutes: action(),
       updateRoutesOrder: action(),
     };
-    mocks.authState = { clearSession: action(), user: { email: 'user@example.com' }, token: 'token' };
+    mocks.authState = {
+      clearSession: action(),
+      user: { email: 'user@example.com' },
+      token: 'token',
+    };
     Object.assign(window, {
       electronAPI: { invoke: mocks.invoke, onFromMain: mocks.onFromMain },
     });
@@ -83,13 +111,16 @@ describe('Sidemenu', () => {
 
     expect(screen.getByText('Route 1')).toBeTruthy();
     expect(screen.getByText('2')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'add' }));
-    fireEvent.click(screen.getByRole('button', { name: 'edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add route' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Manage routes' }));
 
     await waitFor(() => {
       expect(mocks.appState.setActiveDrawer).toHaveBeenCalledWith('create');
       expect(mocks.appState.setActiveDrawer).toHaveBeenCalledWith('manage');
-      expect(mocks.invoke).toHaveBeenCalledWith('activate-tab', expect.anything());
+      expect(mocks.invoke).toHaveBeenCalledWith(
+        'activate-tab',
+        expect.anything(),
+      );
       expect(document.title).toBe('(2) Omnia');
     });
   });
@@ -105,7 +136,7 @@ describe('Sidemenu', () => {
 
     expect(screen.getByText('Offline')).toBeTruthy();
     expect(screen.getByText('sleep')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'logout' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }));
 
     await waitFor(() => {
       expect(mocks.invoke).toHaveBeenCalledWith('clear-route-views');
@@ -125,8 +156,12 @@ describe('Sidemenu', () => {
     mocks.appState = { ...mocks.appState, routes: [route, secondRoute] };
     render(<Sidemenu />);
 
-    const firstRouteElement = screen.getByText('Route 1').closest('a')?.parentElement;
-    const secondRouteElement = screen.getByText('Route 2').closest('a')?.parentElement;
+    const firstRouteElement = screen
+      .getByText('Route 1')
+      .closest('a')?.parentElement;
+    const secondRouteElement = screen
+      .getByText('Route 2')
+      .closest('a')?.parentElement;
     fireEvent.dragStart(firstRouteElement!);
     fireEvent.drop(secondRouteElement!);
 

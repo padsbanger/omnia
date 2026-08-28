@@ -59,10 +59,14 @@ vi.mock('react-icons/md', () => ({
   MdDeleteOutline: () => <span>delete</span>,
   MdDeleteSweep: () => <span>clear</span>,
   MdEdit: () => <span>edit</span>,
+  MdClose: () => <span>close</span>,
+  MdGridView: () => <span>matrix</span>,
+  MdMemory: () => <span>memory</span>,
   MdOutlineBedtime: () => <span>hibernate</span>,
   MdPlayArrow: () => <span>restore</span>,
   MdRefresh: () => <span>refresh</span>,
   MdRemove: () => <span>remove</span>,
+  MdViewColumn: () => <span>columns</span>,
 }));
 
 import ManageRoutesDrawer from './ManageRoutesDrawer';
@@ -309,6 +313,6 @@ describe('ManageRoutesDrawer', () => {
   it('uses the store-backed empty state when drawer route props are omitted', () => {
     render(<ManageRoutesDrawer closeDrawer={vi.fn()} />);
 
-    expect(screen.getByText('No routes yet.')).toBeTruthy();
+    expect(screen.getByText('No routes yet')).toBeTruthy();
   });
 });

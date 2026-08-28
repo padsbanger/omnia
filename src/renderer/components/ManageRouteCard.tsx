@@ -19,6 +19,7 @@ type ManageRouteCardProps = {
   isSaving: boolean;
   labelError: string | null;
   isOffline: boolean;
+  isActive: boolean;
   zoomLevel: number;
   onBeginEditing: (route: Route) => void;
   onCancelEditing: () => void;
@@ -30,9 +31,9 @@ type ManageRouteCardProps = {
 };
 
 const ROUTE_ACTION_BUTTON_CLASS =
-  'h-8 min-h-8 w-8 min-w-8 border border-slate-200 bg-white p-0 text-slate-600 shadow-none hover:border-slate-300 hover:bg-slate-100';
+  'h-8 min-h-8 w-8 min-w-8 rounded-lg border border-slate-200/80 bg-white p-0 text-slate-500 shadow-none transition-all hover:-translate-y-px hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800';
 const ZOOM_BUTTON_CLASS =
-  'h-7 min-h-7 w-7 min-w-7 bg-transparent p-0 text-slate-600 shadow-none hover:bg-white';
+  'h-7 min-h-7 w-7 min-w-7 rounded-md bg-transparent p-0 text-slate-500 shadow-none hover:bg-white hover:text-slate-900';
 
 const getZoomPercentage = (zoomLevel: number) =>
   `${Math.round(100 * 1.2 ** zoomLevel)}%`;
@@ -85,7 +86,7 @@ const ActionButton = ({
     >
       {children}
     </Button>
-    <Tooltip.Content>
+    <Tooltip.Content offset={8} placement="top">
       <p>{tooltip}</p>
     </Tooltip.Content>
   </Tooltip>
@@ -168,7 +169,7 @@ const RouteActions = ({
   <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-2.5">
     <div
       aria-label={`${route.label} zoom`}
-      className="flex shrink-0 items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5"
+      className="flex shrink-0 items-center rounded-lg border border-slate-200/80 bg-slate-100/70 p-0.5"
     >
       <ActionButton
         className={ZOOM_BUTTON_CLASS}
@@ -248,9 +249,18 @@ const RouteActions = ({
 );
 
 const ManageRouteCard = (props: ManageRouteCardProps) => (
-  <div className="flex flex-col gap-2.5 rounded-xl border border-slate-200 bg-white p-3 shadow-sm shadow-slate-200/60">
+  <div
+    className={`group/card relative flex flex-col gap-2.5 overflow-hidden rounded-2xl border bg-white/90 p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.03),0_8px_24px_rgba(15,23,42,0.04)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)] ${
+      props.isActive
+        ? 'border-blue-200/90 ring-1 ring-blue-100'
+        : 'border-slate-200/80'
+    }`}
+  >
+    {props.isActive ? (
+      <span className="absolute inset-y-4 left-0 w-0.5 rounded-r-full bg-blue-500" />
+    ) : null}
     <div className="flex min-w-0 items-start gap-3">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-900">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 text-slate-900 ring-1 ring-slate-200/70">
         <WindowIcon className="text-2xl" icon={props.route.icon} />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -259,9 +269,14 @@ const ManageRouteCard = (props: ManageRouteCardProps) => (
         ) : (
           <>
             <div className="flex min-w-0 items-center justify-between gap-2">
-              <Label className="truncate text-sm font-semibold text-slate-950">
-                {props.route.label}
-              </Label>
+              <div className="flex min-w-0 items-center gap-1.5">
+                <Label className="truncate text-sm font-semibold text-slate-950">
+                  {props.route.label}
+                </Label>
+                {props.isActive ? (
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500 ring-2 ring-blue-100" />
+                ) : null}
+              </div>
               <RouteStatus route={props.route} />
             </div>
             <Description className="truncate text-[11px] text-slate-400">

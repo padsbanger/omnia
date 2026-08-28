@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Button, Label } from '@heroui/react';
+import { Button } from '@heroui/react';
+import { MdClose, MdMemory } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { WindowLayout } from '../../common/drawer';
 import { Route } from '../../common/routes';
@@ -219,26 +220,51 @@ const ManageRoutesDrawer = ({
   }, 0);
 
   return (
-    <div className="flex h-full flex-col bg-white text-slate-950">
-      <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
-        <h2 className="text-lg font-semibold text-slate-950">Manage routes</h2>
+    <div className="flex h-full flex-col bg-slate-50/95 text-slate-950">
+      <div className="flex shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/90 px-5 py-4 backdrop-blur-xl">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-600">
+            Workspace
+          </p>
+          <div className="mt-0.5 flex items-baseline gap-2">
+            <h2 className="text-lg font-semibold tracking-tight text-slate-950">
+              Manage routes
+            </h2>
+            <span className="text-xs tabular-nums text-slate-400">
+              {routes.length} routes
+            </span>
+          </div>
+        </div>
+        <Button
+          aria-label="Close manage routes"
+          className="h-9 min-h-9 w-9 min-w-9 rounded-xl border border-slate-200/80 bg-white p-0 text-slate-500 shadow-none hover:bg-slate-100 hover:text-slate-900"
+          isIconOnly
+          onClick={closeDrawer}
+          size="sm"
+        >
+          <MdClose className="text-lg" />
+        </Button>
       </div>
-      <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-5">
+      <div className="omnia-scrollbar flex flex-1 flex-col gap-3 overflow-y-auto p-4">
         {isOffline && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <div className="rounded-xl border border-amber-200/80 bg-amber-50/80 px-3 py-2.5 text-xs leading-relaxed text-amber-800">
             Offline mode: saved routes are available, but adding, renaming, and
             deleting routes requires the Omnia backend.
           </div>
         )}
         {routes.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-6 text-sm text-slate-500">
-            No routes yet.
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white/60 px-4 py-10 text-center">
+            <p className="text-sm font-medium text-slate-600">No routes yet</p>
+            <p className="mt-1 text-xs text-slate-400">
+              Add your first service from the sidebar.
+            </p>
           </div>
         ) : (
           routes.map((route) => (
             <ManageRouteCard
               editingLabel={editingLabel}
               isEditing={editingRouteId === route.id}
+              isActive={activeTab === route.id}
               isOffline={isOffline}
               isSaving={savingRouteId === route.id}
               key={route.id}
@@ -265,21 +291,14 @@ const ManageRoutesDrawer = ({
             windowLayout={windowLayout}
           />
         )}
-        <div className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-          <div className="flex flex-col">
-            <Label className="text-black">
-              Total memory usage: {formatGigabytes(totalMemoryUsage)}
-            </Label>
-          </div>
-        </div>
-        <div className="mt-auto flex justify-end">
-          <Button
-            type="button"
-            className="border border-slate-200 bg-white text-slate-700"
-            onClick={closeDrawer}
-          >
-            Close
-          </Button>
+        <div className="mt-1 flex items-center justify-between rounded-xl border border-slate-200/70 bg-white/70 px-3 py-2.5 text-xs text-slate-500">
+          <span className="flex items-center gap-2">
+            <MdMemory className="text-base text-slate-400" />
+            Total memory
+          </span>
+          <span className="font-semibold tabular-nums text-slate-700">
+            {formatGigabytes(totalMemoryUsage)}
+          </span>
         </div>
       </div>
     </div>
