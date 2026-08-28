@@ -13,6 +13,8 @@ Omnia is a desktop workspace organizer app that unifies multiple web-based appli
 - TradingView
 - Discord
 - Microsoft Teams
+- ChatGPT
+- Claude
 
 and many more coming. You can let me know what integation you want next by raising and [issue](https://github.com/padsbanger/omnia/issues).
 

@@ -11,6 +11,8 @@ type CreateNewRouteFormProps = {
 };
 
 type ApplicationKey =
+  | 'claude'
+  | 'chatgpt'
   | 'gmail'
   | 'discord'
   | 'facebook'
@@ -26,6 +28,8 @@ const APPLICATION_DEFAULTS: Record<
   ApplicationKey,
   { label: string; url: string }
 > = {
+  claude: { label: 'Claude', url: 'https://claude.ai/' },
+  chatgpt: { label: 'ChatGPT', url: 'https://chatgpt.com/' },
   gmail: { label: 'Gmail', url: 'https://mail.google.com' },
   discord: { label: 'Discord', url: 'https://discord.com/channels/@me' },
   facebook: { label: 'Messenger', url: 'https://facebook.com/messages' },
@@ -182,6 +186,8 @@ const CreateNewRouteForm = ({
               handleApplicationChange(event.target.value as ApplicationKey)
             }
           >
+            <option value="claude">Claude</option>
+            <option value="chatgpt">ChatGPT</option>
             <option value="gmail">Gmail</option>
             <option value="discord">Discord</option>
             <option value="facebook">Facebook</option>

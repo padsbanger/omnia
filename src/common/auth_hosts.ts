@@ -73,7 +73,23 @@ const SPOTIFY_HOSTS = [
   ...GOOGLE_HOSTS,
 ]
 
+const CHATGPT_HOSTS = [
+  'chatgpt.com',
+  'chat.openai.com',
+  'auth.openai.com',
+  'openai.com',
+  'oaistatic.com',
+  'oaiusercontent.com',
+];
+
+const CLAUDE_HOSTS = [
+  'claude.ai',
+  'anthropic.com',
+];
+
 export { 
+  CHATGPT_HOSTS,
+  CLAUDE_HOSTS,
   GOOGLE_HOSTS, 
   FACEBOOK_HOSTS, 
   TWITTER_HOSTS, 

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CHATGPT_HOSTS,
+  CLAUDE_HOSTS,
   FACEBOOK_HOSTS,
   GOOGLE_HOSTS,
   MICROSOFT_TEAMS_HOSTS,
@@ -18,6 +20,10 @@ import {
 
 describe('getRouteNavigationConfig', () => {
   it.each([
+    ['claude', 'example.com', CLAUDE_HOSTS],
+    ['link', 'www.anthropic.com', CLAUDE_HOSTS],
+    ['chatgpt', 'example.com', CHATGPT_HOSTS],
+    ['link', 'auth.openai.com', CHATGPT_HOSTS],
     ['gmail', 'mail.google.com', GOOGLE_HOSTS],
     ['link', 'accounts.google.com', GOOGLE_HOSTS],
     ['discord', 'example.com', ['discord.com', 'discordapp.com']],

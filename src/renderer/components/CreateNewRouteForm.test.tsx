@@ -77,6 +77,28 @@ describe('CreateNewRouteForm', () => {
     expect(await screen.findByText('Enter a valid URL.')).toBeTruthy();
   });
 
+  it('selects the ChatGPT default route', () => {
+    renderForm();
+
+    fireEvent.change(screen.getByDisplayValue('Gmail'), {
+      target: { value: 'chatgpt' },
+    });
+
+    expect(screen.getByDisplayValue('ChatGPT')).toBeTruthy();
+    expect(screen.getByDisplayValue('https://chatgpt.com/')).toBeTruthy();
+  });
+
+  it('selects the Claude default route', () => {
+    renderForm();
+
+    fireEvent.change(screen.getByDisplayValue('Gmail'), {
+      target: { value: 'claude' },
+    });
+
+    expect(screen.getByDisplayValue('Claude')).toBeTruthy();
+    expect(screen.getByDisplayValue('https://claude.ai/')).toBeTruthy();
+  });
+
   it('updates local route state after Electron creates the route', async () => {
     const closeDrawer = vi.fn();
     renderForm({ closeDrawer });

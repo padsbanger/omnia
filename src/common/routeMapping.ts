@@ -1,4 +1,6 @@
 import {
+  CHATGPT_HOSTS,
+  CLAUDE_HOSTS,
   FACEBOOK_HOSTS,
   GOOGLE_HOSTS,
   MICROSOFT_TEAMS_HOSTS,
@@ -36,6 +38,16 @@ type NavigationRule = {
 };
 
 const ROUTE_NAVIGATION_RULES: NavigationRule[] = [
+  {
+    icon: "claude",
+    internalHosts: CLAUDE_HOSTS,
+    hostSuffixes: ["claude.ai", "anthropic.com"],
+  },
+  {
+    icon: "chatgpt",
+    internalHosts: CHATGPT_HOSTS,
+    hostSuffixes: ["chatgpt.com", "openai.com"],
+  },
   {
     icon: "gmail",
     internalHosts: GOOGLE_HOSTS,
