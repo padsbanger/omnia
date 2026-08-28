@@ -4,23 +4,18 @@ import {
   ipcMain,
   session,
   shell,
-} from "electron";
-import { DrawerStateSnapshot, WindowLayout } from "../../common/drawer";
-import { Route } from "../../common/routes";
-import isExternalUrl from "../../common/utils/isExternalUrl";
+} from 'electron';
+import { DrawerStateSnapshot, WindowLayout } from '../../common/drawer';
+import { Route } from '../../common/routes';
+import isExternalUrl from '../../common/utils/isExternalUrl';
 import {
   AUTHENTIK_REDIRECT_URI,
   completeAuthorization,
   createAuthorizationRequest,
   getCurrentUser,
   refreshAuthorization,
-} from "../authApi";
-import {
-  createRoute,
-  deleteRoute,
-  updateRoute,
-  listRoutes,
-} from "../routeApi";
+} from '../authApi';
+import { createRoute, deleteRoute, updateRoute, listRoutes } from '../routeApi';
 
 type RegisterIpcHandlersParams = {
   getMainWindow: () => BrowserWindow | null;
@@ -59,6 +54,10 @@ type Bounds = {
 
 type CreateRoutePayload = Parameters<typeof createRoute>[1];
 
+const MIN_ROUTE_ZOOM_LEVEL = -3;
+const MAX_ROUTE_ZOOM_LEVEL = 3;
+const ROUTE_ZOOM_STEP = 0.5;
+
 const loginWithAuthentik = async (parent: BrowserWindow | null) => {
   const authorizationRequest = await createAuthorizationRequest();
   const redirectUrl = new URL(AUTHENTIK_REDIRECT_URI);
@@ -72,7 +71,7 @@ const loginWithAuthentik = async (parent: BrowserWindow | null) => {
         height: 700,
         modal: Boolean(parent),
         show: false,
-        title: "Sign in to Omnia",
+        title: 'Sign in to Omnia',
         webPreferences: {
           contextIsolation: true,
           nodeIntegration: false,
@@ -106,22 +105,22 @@ const loginWithAuthentik = async (parent: BrowserWindow | null) => {
         );
       };
 
-      authWindow.webContents.on("will-redirect", (event, url) =>
+      authWindow.webContents.on('will-redirect', (event, url) =>
         handleNavigation(url, event),
       );
-      authWindow.webContents.on("will-navigate", (event, url) =>
+      authWindow.webContents.on('will-navigate', (event, url) =>
         handleNavigation(url, event),
       );
-      authWindow.on("closed", () => {
+      authWindow.on('closed', () => {
         if (!isSettled) {
           isSettled = true;
-          reject(new Error("Sign-in was cancelled."));
+          reject(new Error('Sign-in was cancelled.'));
         }
       });
-      authWindow.once("ready-to-show", () => authWindow.show());
-      void authWindow.loadURL(authorizationRequest.url).catch((error) =>
-        settle(reject, error),
-      );
+      authWindow.once('ready-to-show', () => authWindow.show());
+      void authWindow
+        .loadURL(authorizationRequest.url)
+        .catch((error) => settle(reject, error));
     },
   );
 };
@@ -143,14 +142,12 @@ export default function registerIpcHandlers({
   setRouteHibernationFromDrawer,
   setWindowLayoutFromDrawer,
 }: RegisterIpcHandlersParams) {
-  ipcMain.removeHandler("auth-login");
-  ipcMain.handle("auth-login", async () =>
-    loginWithAuthentik(getMainWindow()),
-  );
+  ipcMain.removeHandler('auth-login');
+  ipcMain.handle('auth-login', async () => loginWithAuthentik(getMainWindow()));
 
-  ipcMain.removeHandler("auth-refresh");
+  ipcMain.removeHandler('auth-refresh');
   ipcMain.handle(
-    "auth-refresh",
+    'auth-refresh',
     async (_event, { refreshToken }: { refreshToken: string }) => {
       try {
         return {
@@ -164,7 +161,7 @@ export default function registerIpcHandlers({
             message:
               error instanceof Error
                 ? error.message
-                : "The session could not be refreshed.",
+                : 'The session could not be refreshed.',
             status: (error as { status?: number })?.status,
           },
         };
@@ -172,22 +169,22 @@ export default function registerIpcHandlers({
     },
   );
 
-  ipcMain.removeHandler("auth-me");
-  ipcMain.handle("auth-me", async (_event, { token }: { token: string }) => ({
+  ipcMain.removeHandler('auth-me');
+  ipcMain.handle('auth-me', async (_event, { token }: { token: string }) => ({
     user: await getCurrentUser(token),
   }));
 
-  ipcMain.removeHandler("routes-list");
-  ipcMain.handle("routes-list", async (_event, { token }: { token: string }) =>
+  ipcMain.removeHandler('routes-list');
+  ipcMain.handle('routes-list', async (_event, { token }: { token: string }) =>
     listRoutes(token),
   );
 
-  ipcMain.removeHandler("get-unread-state");
-  ipcMain.handle("get-unread-state", () => getUnreadState());
+  ipcMain.removeHandler('get-unread-state');
+  ipcMain.handle('get-unread-state', () => getUnreadState());
 
-  ipcMain.removeHandler("routes-create");
+  ipcMain.removeHandler('routes-create');
   ipcMain.handle(
-    "routes-create",
+    'routes-create',
     async (
       _event,
       {
@@ -200,9 +197,9 @@ export default function registerIpcHandlers({
     ) => createRoute(token, route),
   );
 
-  ipcMain.removeHandler("routes-delete");
+  ipcMain.removeHandler('routes-delete');
   ipcMain.handle(
-    "routes-delete",
+    'routes-delete',
     async (
       _event,
       {
@@ -218,9 +215,9 @@ export default function registerIpcHandlers({
     },
   );
 
-  ipcMain.removeHandler("routes-update");
+  ipcMain.removeHandler('routes-update');
   ipcMain.handle(
-    "routes-update",
+    'routes-update',
     async (
       _event,
       {
@@ -238,9 +235,9 @@ export default function registerIpcHandlers({
     },
   );
 
-  ipcMain.removeHandler("activate-tab");
+  ipcMain.removeHandler('activate-tab');
   ipcMain.handle(
-    "activate-tab",
+    'activate-tab',
     async (_event, { route }: { route: Route }) => {
       const mainWindow = getMainWindow();
       if (!mainWindow) return { success: false };
@@ -266,16 +263,16 @@ export default function registerIpcHandlers({
         height: contentBounds.height,
       });
 
-      mainWindow.webContents.send("tabId-change", { tabId: route.id });
-      console.log("Activated tab", route.id);
+      mainWindow.webContents.send('tabId-change', { tabId: route.id });
+      console.log('Activated tab', route.id);
 
       return { success: true };
     },
   );
 
-  ipcMain.removeHandler("update-view-bounds");
+  ipcMain.removeHandler('update-view-bounds');
   ipcMain.handle(
-    "update-view-bounds",
+    'update-view-bounds',
     async (_event, { route, bounds }: { route: Route; bounds: Bounds }) => {
       const mainWindow = getMainWindow();
       const view = views.get(route.id) ?? createViewForRoute(route);
@@ -289,21 +286,64 @@ export default function registerIpcHandlers({
     },
   );
 
-  ipcMain.removeHandler("refresh-view");
+  ipcMain.removeHandler('refresh-view');
   ipcMain.handle(
-    "refresh-view",
+    'refresh-view',
     async (_event, { route }: { route: Route }) => {
       const view = views.get(route.id) ?? createViewForRoute(route);
       if (!view) return { success: false };
 
       view.webContents.reload();
-      console.log("Refreshed view:", route.id);
+      console.log('Refreshed view:', route.id);
       return { success: true };
     },
   );
 
-  ipcMain.removeHandler("clear-partitions");
-  ipcMain.handle("clear-partitions", async () => {
+  ipcMain.removeHandler('change-route-zoom');
+  ipcMain.handle(
+    'change-route-zoom',
+    async (
+      _event,
+      {
+        route,
+        direction,
+      }: {
+        route: Route;
+        direction: 'in' | 'out';
+      },
+    ) => {
+      const view = views.get(route.id) ?? createViewForRoute(route);
+      if (!view || (direction !== 'in' && direction !== 'out')) {
+        return { success: false };
+      }
+
+      const zoomChange =
+        direction === 'in' ? ROUTE_ZOOM_STEP : -ROUTE_ZOOM_STEP;
+      const zoomLevel = Math.min(
+        MAX_ROUTE_ZOOM_LEVEL,
+        Math.max(
+          MIN_ROUTE_ZOOM_LEVEL,
+          view.webContents.getZoomLevel() + zoomChange,
+        ),
+      );
+
+      view.webContents.setZoomLevel(zoomLevel);
+      const runtimeRoute = routes.find((item) => item.id === route.id);
+      if (runtimeRoute) {
+        runtimeRoute.zoomLevel = zoomLevel;
+      }
+
+      getMainWindow()?.webContents.send('route-zoom-changed', {
+        routeId: route.id,
+        zoomLevel,
+      });
+
+      return { success: true, zoomLevel };
+    },
+  );
+
+  ipcMain.removeHandler('clear-partitions');
+  ipcMain.handle('clear-partitions', async () => {
     await session.defaultSession.clearStorageData();
 
     routes.forEach((route) => {
@@ -314,9 +354,9 @@ export default function registerIpcHandlers({
     });
   });
 
-  ipcMain.removeHandler("clear-single-partition");
+  ipcMain.removeHandler('clear-single-partition');
   ipcMain.handle(
-    "clear-single-partition",
+    'clear-single-partition',
     async (_event, { route }: { route: Route }) => {
       const ses = session.fromPartition(route.partition);
       await ses.clearStorageData();
@@ -324,20 +364,20 @@ export default function registerIpcHandlers({
     },
   );
 
-  ipcMain.removeHandler("open-external-link");
-  ipcMain.handle("open-external-link", async (_, { url }) => {
-    console.log("Request to open external link:", url);
+  ipcMain.removeHandler('open-external-link');
+  ipcMain.handle('open-external-link', async (_, { url }) => {
+    console.log('Request to open external link:', url);
     if (isExternalUrl(url)) {
       await shell.openExternal(url);
     }
   });
 
-  ipcMain.removeHandler("create-route-view");
+  ipcMain.removeHandler('create-route-view');
   ipcMain.handle(
-    "create-route-view",
+    'create-route-view',
     async (_event, { route }: { route: Route }) => {
       if (!route || !route.id) {
-        return { success: false, reason: "Invalid route" };
+        return { success: false, reason: 'Invalid route' };
       }
 
       if (views.has(route.id)) {
@@ -346,7 +386,7 @@ export default function registerIpcHandlers({
 
       const view = createViewForRoute(route);
       if (!view) {
-        return { success: false, reason: "Failed to create route view" };
+        return { success: false, reason: 'Failed to create route view' };
       }
 
       if (!routes.some((existingRoute) => existingRoute.id === route.id)) {
@@ -357,18 +397,18 @@ export default function registerIpcHandlers({
     },
   );
 
-  ipcMain.removeHandler("delete-route-view");
+  ipcMain.removeHandler('delete-route-view');
   ipcMain.handle(
-    "delete-route-view",
+    'delete-route-view',
     async (_event, { route }: { route: Route }) => {
       if (!route || !route.id) {
-        return { success: false, reason: "Invalid route" };
+        return { success: false, reason: 'Invalid route' };
       }
 
       const deleted = await removeRouteView(route);
 
       if (!deleted) {
-        return { success: false, reason: "Failed to delete route view" };
+        return { success: false, reason: 'Failed to delete route view' };
       }
 
       const routeIndex = routes.findIndex(
@@ -383,8 +423,8 @@ export default function registerIpcHandlers({
     },
   );
 
-  ipcMain.removeHandler("clear-route-views");
-  ipcMain.handle("clear-route-views", async () => {
+  ipcMain.removeHandler('clear-route-views');
+  ipcMain.handle('clear-route-views', async () => {
     const mainWindow = getMainWindow();
     const routesSnapshot = [...routes];
 
@@ -393,7 +433,7 @@ export default function registerIpcHandlers({
     }
 
     routes.splice(0, routes.length);
-    mainWindow?.webContents.send("tabId-change", { tabId: null });
+    mainWindow?.webContents.send('tabId-change', { tabId: null });
     await syncDrawerState({
       ...getDrawerState(),
       activeDrawer: null,
@@ -404,66 +444,66 @@ export default function registerIpcHandlers({
     return { success: true };
   });
 
-  ipcMain.removeHandler("hibernate-route-view");
+  ipcMain.removeHandler('hibernate-route-view');
   ipcMain.handle(
-    "hibernate-route-view",
+    'hibernate-route-view',
     async (_event, { route }: { route: Route }) => {
       if (!route || !route.id) {
-        return { success: false, reason: "Invalid route" };
+        return { success: false, reason: 'Invalid route' };
       }
 
       const hibernated = await hibernateRouteView(route);
       if (!hibernated) {
-        return { success: false, reason: "Failed to hibernate route view" };
+        return { success: false, reason: 'Failed to hibernate route view' };
       }
 
       return { success: true };
     },
   );
 
-  ipcMain.removeHandler("sync-drawer-state");
+  ipcMain.removeHandler('sync-drawer-state');
   ipcMain.handle(
-    "sync-drawer-state",
+    'sync-drawer-state',
     async (_event, { state }: { state: DrawerStateSnapshot }) => {
       try {
         await syncDrawerState(state);
         return { success: true };
       } catch (error) {
-        console.error("Failed to sync drawer state", error);
+        console.error('Failed to sync drawer state', error);
         return { success: false };
       }
     },
   );
 
-  ipcMain.removeHandler("get-drawer-state");
-  ipcMain.handle("get-drawer-state", async () => getDrawerState());
+  ipcMain.removeHandler('get-drawer-state');
+  ipcMain.handle('get-drawer-state', async () => getDrawerState());
 
-  ipcMain.removeHandler("close-drawer-window");
-  ipcMain.handle("close-drawer-window", async () => {
+  ipcMain.removeHandler('close-drawer-window');
+  ipcMain.handle('close-drawer-window', async () => {
     closeDrawerWindow();
     return { success: true };
   });
 
-  ipcMain.removeHandler("drawer-create-route");
+  ipcMain.removeHandler('drawer-create-route');
   ipcMain.handle(
-    "drawer-create-route",
+    'drawer-create-route',
     async (_event, { route }: { route: Route }) => {
       const success = await createRouteFromDrawer(route);
       return { success };
     },
   );
 
-  ipcMain.removeHandler("drawer-delete-route");
+  ipcMain.removeHandler('drawer-delete-route');
   ipcMain.handle(
-    "drawer-delete-route",
+    'drawer-delete-route',
     async (_event, { routeId }: { routeId: string }) => {
       return deleteRouteFromDrawer(routeId);
     },
   );
 
-  ipcMain.removeHandler("drawer-update-route-label");
+  ipcMain.removeHandler('drawer-update-route-label');
   ipcMain.handle(
-    "drawer-update-route-label",
+    'drawer-update-route-label',
     async (
       _event,
       {
@@ -479,9 +519,9 @@ export default function registerIpcHandlers({
     },
   );
 
-  ipcMain.removeHandler("drawer-set-route-hibernation");
+  ipcMain.removeHandler('drawer-set-route-hibernation');
   ipcMain.handle(
-    "drawer-set-route-hibernation",
+    'drawer-set-route-hibernation',
     async (
       _event,
       {
@@ -500,9 +540,9 @@ export default function registerIpcHandlers({
     },
   );
 
-  ipcMain.removeHandler("drawer-set-window-layout");
+  ipcMain.removeHandler('drawer-set-window-layout');
   ipcMain.handle(
-    "drawer-set-window-layout",
+    'drawer-set-window-layout',
     async (_event, { windowLayout }: { windowLayout: WindowLayout }) => {
       setWindowLayoutFromDrawer(windowLayout);
       return { success: true };

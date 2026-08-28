@@ -1,9 +1,16 @@
-import { Button, Description, Label, Tooltip } from "@heroui/react";
-import { IoTrashBin } from "react-icons/io5";
-import { IoIosRefresh } from "react-icons/io";
-import { RiCloseFill } from "react-icons/ri";
-import { Route } from "../../common/routes";
-import { WindowIcon } from "./WindowIcon";
+import { Button, Description, Label, Tooltip } from '@heroui/react';
+import {
+  MdAdd,
+  MdDeleteOutline,
+  MdDeleteSweep,
+  MdEdit,
+  MdOutlineBedtime,
+  MdPlayArrow,
+  MdRefresh,
+  MdRemove,
+} from 'react-icons/md';
+import { Route } from '../../common/routes';
+import { WindowIcon } from './WindowIcon';
 
 type ManageRouteCardProps = {
   route: Route;
@@ -12,25 +19,77 @@ type ManageRouteCardProps = {
   isSaving: boolean;
   labelError: string | null;
   isOffline: boolean;
+  zoomLevel: number;
   onBeginEditing: (route: Route) => void;
   onCancelEditing: () => void;
   onChangeLabel: (label: string) => void;
   onCommitLabel: (route: Route) => void;
   onDelete: (routeId: string) => void;
   onToggleHibernation: (routeId: string) => void;
+  onZoomRoute: (route: Route, direction: 'in' | 'out') => void;
 };
 
-const RouteStatus = ({ route }: Pick<ManageRouteCardProps, "route">) => {
-  if (route.isHibernated) return <Description>Status: hibernated</Description>;
-  if (route.memoryUsage) {
+const ROUTE_ACTION_BUTTON_CLASS =
+  'h-8 min-h-8 w-8 min-w-8 border border-slate-200 bg-white p-0 text-slate-600 shadow-none hover:border-slate-300 hover:bg-slate-100';
+const ZOOM_BUTTON_CLASS =
+  'h-7 min-h-7 w-7 min-w-7 bg-transparent p-0 text-slate-600 shadow-none hover:bg-white';
+
+const getZoomPercentage = (zoomLevel: number) =>
+  `${Math.round(100 * 1.2 ** zoomLevel)}%`;
+
+const RouteStatus = ({ route }: Pick<ManageRouteCardProps, 'route'>) => {
+  if (route.isHibernated) {
     return (
-      <Description>
-        Memory: {(route.memoryUsage.residentSet / 1024).toFixed(1)} MB
-      </Description>
+      <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+        Hibernated
+      </span>
     );
   }
-  return <Description>Memory: measuring...</Description>;
+  if (route.memoryUsage) {
+    return (
+      <span className="shrink-0 text-[11px] text-slate-400">
+        {(route.memoryUsage.residentSet / 1024).toFixed(1)} MB
+      </span>
+    );
+  }
+  return (
+    <span className="shrink-0 text-[11px] text-slate-400">Measuring...</span>
+  );
 };
+
+type ActionButtonProps = {
+  children: React.ReactNode;
+  className?: string;
+  isDisabled?: boolean;
+  label: string;
+  onClick: () => void;
+  tooltip: string;
+};
+
+const ActionButton = ({
+  children,
+  className = ROUTE_ACTION_BUTTON_CLASS,
+  isDisabled,
+  label,
+  onClick,
+  tooltip,
+}: ActionButtonProps) => (
+  <Tooltip>
+    <Button
+      aria-label={label}
+      className={className}
+      isDisabled={isDisabled}
+      isIconOnly
+      onClick={onClick}
+      size="sm"
+    >
+      {children}
+    </Button>
+    <Tooltip.Content>
+      <p>{tooltip}</p>
+    </Tooltip.Content>
+  </Tooltip>
+);
 
 const RouteEditor = ({
   editingLabel,
@@ -42,13 +101,13 @@ const RouteEditor = ({
   route,
 }: Pick<
   ManageRouteCardProps,
-  | "editingLabel"
-  | "isSaving"
-  | "labelError"
-  | "onCancelEditing"
-  | "onChangeLabel"
-  | "onCommitLabel"
-  | "route"
+  | 'editingLabel'
+  | 'isSaving'
+  | 'labelError'
+  | 'onCancelEditing'
+  | 'onChangeLabel'
+  | 'onCommitLabel'
+  | 'route'
 >) => (
   <>
     <input
@@ -56,30 +115,34 @@ const RouteEditor = ({
       className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-950 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
       onChange={(event) => onChangeLabel(event.target.value)}
       onKeyDown={(event) => {
-        if (event.key === "Escape") {
+        if (event.key === 'Escape') {
           onCancelEditing();
           return;
         }
-        if (event.key === "Enter") onCommitLabel(route);
+        if (event.key === 'Enter') onCommitLabel(route);
       }}
       value={editingLabel}
     />
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+    <div className="flex flex-wrap items-center gap-2">
       <Button
         className="bg-blue-600 text-white"
         isDisabled={!editingLabel.trim().length}
         isPending={isSaving}
         onClick={() => onCommitLabel(route)}
+        size="sm"
       >
         Save
       </Button>
       <Button
         className="border border-slate-200 bg-white text-slate-700"
         onClick={onCancelEditing}
+        size="sm"
       >
         Cancel
       </Button>
-      {labelError ? <Description className="text-red-700">{labelError}</Description> : null}
+      {labelError ? (
+        <Description className="text-red-700">{labelError}</Description>
+      ) : null}
     </div>
   </>
 );
@@ -89,95 +152,121 @@ const RouteActions = ({
   onBeginEditing,
   onDelete,
   onToggleHibernation,
+  onZoomRoute,
   route,
+  zoomLevel,
 }: Pick<
   ManageRouteCardProps,
-  | "isOffline"
-  | "onBeginEditing"
-  | "onDelete"
-  | "onToggleHibernation"
-  | "route"
+  | 'isOffline'
+  | 'onBeginEditing'
+  | 'onDelete'
+  | 'onToggleHibernation'
+  | 'onZoomRoute'
+  | 'route'
+  | 'zoomLevel'
 >) => (
-  <div className="flex flex-col gap-2">
-    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-      Actions
-    </span>
-    <div className="flex flex-wrap items-center gap-2">
-      <Tooltip>
-        <Button
-          className="border border-slate-200 bg-slate-50 text-slate-700"
-          size="sm"
-          onClick={() => onToggleHibernation(route.id)}
-        >
-          {route.isHibernated ? "Restore" : "Hibernate"}
-        </Button>
-        <Tooltip.Content>
-          <p>{route.isHibernated ? "Wake this route and recreate its webview." : "Unload this route's webview to free memory."}</p>
-        </Tooltip.Content>
-      </Tooltip>
-      <Tooltip>
-        <Button
-          isIconOnly
-          size="sm"
-          className="border border-slate-200 bg-slate-50 text-slate-700"
-          isDisabled={route.isHibernated}
-          onClick={() => window.electronAPI.invoke("refresh-view", { route })}
-        >
-          <IoIosRefresh />
-        </Button>
-        <Tooltip.Content><p>Refresh this route.</p></Tooltip.Content>
-      </Tooltip>
-      <Tooltip>
-        <Button
-          isIconOnly
-          size="sm"
-          className="border border-slate-200 bg-slate-50 text-slate-700"
-          isDisabled={route.isHibernated}
-          onClick={() => window.electronAPI.invoke("clear-single-partition", { route })}
-        >
-          <IoTrashBin />
-        </Button>
-        <Tooltip.Content><p>Clear site data for this route.</p></Tooltip.Content>
-      </Tooltip>
-      <Tooltip>
-        <Button
-          size="sm"
-          className="border border-slate-200 bg-slate-50 text-slate-700"
-          isDisabled={isOffline}
-          onClick={() => onBeginEditing(route)}
-        >
-          Rename
-        </Button>
-        <Tooltip.Content><p>Rename this route label.</p></Tooltip.Content>
-      </Tooltip>
-      <Tooltip>
-        <Button
-          isIconOnly
-          size="sm"
-          className="border border-slate-200 bg-slate-50 text-slate-700"
-          isDisabled={isOffline}
-          onClick={() => onDelete(route.id)}
-        >
-          <RiCloseFill />
-        </Button>
-        <Tooltip.Content><p>Delete this route.</p></Tooltip.Content>
-      </Tooltip>
+  <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-2.5">
+    <div
+      aria-label={`${route.label} zoom`}
+      className="flex shrink-0 items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5"
+    >
+      <ActionButton
+        className={ZOOM_BUTTON_CLASS}
+        isDisabled={route.isHibernated}
+        label="Zoom out"
+        onClick={() => onZoomRoute(route, 'out')}
+        tooltip="Zoom out for this route."
+      >
+        <MdRemove className="text-base" />
+      </ActionButton>
+      <span className="w-9 text-center text-[11px] font-semibold tabular-nums text-slate-500">
+        {getZoomPercentage(zoomLevel)}
+      </span>
+      <ActionButton
+        className={ZOOM_BUTTON_CLASS}
+        isDisabled={route.isHibernated}
+        label="Zoom in"
+        onClick={() => onZoomRoute(route, 'in')}
+        tooltip="Zoom in for this route."
+      >
+        <MdAdd className="text-base" />
+      </ActionButton>
+    </div>
+    <div className="flex min-w-0 items-center gap-1">
+      <ActionButton
+        label={route.isHibernated ? 'Restore' : 'Hibernate'}
+        onClick={() => onToggleHibernation(route.id)}
+        tooltip={
+          route.isHibernated
+            ? 'Restore this route.'
+            : 'Hibernate this route to free memory.'
+        }
+      >
+        {route.isHibernated ? (
+          <MdPlayArrow className="text-base" />
+        ) : (
+          <MdOutlineBedtime className="text-base" />
+        )}
+      </ActionButton>
+      <ActionButton
+        isDisabled={route.isHibernated}
+        label="Refresh route"
+        onClick={() => window.electronAPI.invoke('refresh-view', { route })}
+        tooltip="Refresh this route."
+      >
+        <MdRefresh className="text-base" />
+      </ActionButton>
+      <ActionButton
+        isDisabled={route.isHibernated}
+        label="Clear site data"
+        onClick={() =>
+          window.electronAPI.invoke('clear-single-partition', { route })
+        }
+        tooltip="Clear site data for this route."
+      >
+        <MdDeleteSweep className="text-base" />
+      </ActionButton>
+      <ActionButton
+        isDisabled={isOffline}
+        label="Rename"
+        onClick={() => onBeginEditing(route)}
+        tooltip="Rename this route."
+      >
+        <MdEdit className="text-base" />
+      </ActionButton>
+      <ActionButton
+        className={`${ROUTE_ACTION_BUTTON_CLASS} text-red-500 hover:border-red-200 hover:bg-red-50`}
+        isDisabled={isOffline}
+        label="Delete route"
+        onClick={() => onDelete(route.id)}
+        tooltip="Delete this route."
+      >
+        <MdDeleteOutline className="text-base" />
+      </ActionButton>
     </div>
   </div>
 );
 
 const ManageRouteCard = (props: ManageRouteCardProps) => (
-  <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-    <div className="flex flex-row gap-2">
-      <WindowIcon icon={props.route.icon} />
+  <div className="flex flex-col gap-2.5 rounded-xl border border-slate-200 bg-white p-3 shadow-sm shadow-slate-200/60">
+    <div className="flex min-w-0 items-start gap-3">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-900">
+        <WindowIcon className="text-2xl" icon={props.route.icon} />
+      </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         {props.isEditing ? (
           <RouteEditor {...props} />
         ) : (
           <>
-            <Label className="truncate text-black">{props.route.label}</Label>
-            <Description className="truncate">{props.route.loadURL}</Description>
-            <RouteStatus route={props.route} />
+            <div className="flex min-w-0 items-center justify-between gap-2">
+              <Label className="truncate text-sm font-semibold text-slate-950">
+                {props.route.label}
+              </Label>
+              <RouteStatus route={props.route} />
+            </div>
+            <Description className="truncate text-[11px] text-slate-400">
+              {props.route.loadURL}
+            </Description>
           </>
         )}
       </div>

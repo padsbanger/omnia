@@ -1,28 +1,32 @@
-import { createRoot } from "react-dom/client";
-import React, { useEffect, useMemo, useRef } from "react";
-import { Spinner } from "@heroui/react";
+import { createRoot } from 'react-dom/client';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { Spinner } from '@heroui/react';
 import {
   HashRouter,
   Route,
   Routes,
   useLocation,
   useNavigate,
-} from "react-router-dom";
-import { DrawerStateSnapshot, DrawerKind, WindowLayout } from "../common/drawer";
-import { Route as AppRoute } from "../common/routes";
-import Window from "./components/Window";
-import SpreadWindows from "./components/SpreadWindows";
-import DrawerWindowApp from "./components/DrawerWindowApp";
-import Layout from "./components/Layout";
-import AuthScreen from "./components/AuthScreen";
-import { getCurrentUser, refreshSession } from "./api/auth";
-import { listRoutes } from "./api/routes";
-import { createLocalRouteFromApiRoute } from "../common/routeMapping";
-import { useAppStore, useAuthStore } from "./store";
-import { useSessionVerification } from "./hooks/useSessionVerification";
-import { shouldShowAuthenticationLoader } from "./sessionVerification";
+} from 'react-router-dom';
+import {
+  DrawerStateSnapshot,
+  DrawerKind,
+  WindowLayout,
+} from '../common/drawer';
+import { Route as AppRoute } from '../common/routes';
+import Window from './components/Window';
+import SpreadWindows from './components/SpreadWindows';
+import DrawerWindowApp from './components/DrawerWindowApp';
+import Layout from './components/Layout';
+import AuthScreen from './components/AuthScreen';
+import { getCurrentUser, refreshSession } from './api/auth';
+import { listRoutes } from './api/routes';
+import { createLocalRouteFromApiRoute } from '../common/routeMapping';
+import { useAppStore, useAuthStore } from './store';
+import { useSessionVerification } from './hooks/useSessionVerification';
+import { shouldShowAuthenticationLoader } from './sessionVerification';
 
-const DRAWER_KINDS: DrawerKind[] = ["create", "manage", "settings"];
+const DRAWER_KINDS: DrawerKind[] = ['create', 'manage', 'settings'];
 
 export const isDrawerKind = (value: string | null): value is DrawerKind =>
   DRAWER_KINDS.includes(value as DrawerKind);
@@ -47,6 +51,7 @@ export function MainApp() {
     setActiveDrawer,
     setActiveTab,
     updateRouteLabel,
+    updateRouteZoomLevel,
     setRouteHibernation,
     setWindowLayout,
     updateUnreadCount,
@@ -56,7 +61,7 @@ export function MainApp() {
   useEffect(() => {
     routes.forEach((route) => {
       if (!route.isHibernated) {
-        window.electronAPI.invoke("create-route-view", { route });
+        window.electronAPI.invoke('create-route-view', { route });
       }
     });
   }, [routes]);
@@ -78,33 +83,33 @@ export function MainApp() {
     };
 
     void window.electronAPI
-      .invoke("sync-drawer-state", { state })
+      .invoke('sync-drawer-state', { state })
       .catch((error) => {
-        console.error("Failed to sync drawer state", error);
+        console.error('Failed to sync drawer state', error);
       });
   }, [activeDrawer, activeTab, isOffline, routes, windowLayout]);
 
   useEffect(() => {
     const unsubscribeClosed = window.electronAPI.onFromMain(
-      "drawer-window-closed",
+      'drawer-window-closed',
       () => {
         setActiveDrawer(null);
       },
     );
 
     const unsubscribeCreated = window.electronAPI.onFromMain(
-      "drawer-route-created",
+      'drawer-route-created',
       ({ route }: { route: AppRoute }) => {
         addRoute(route);
         setActiveTab(route.id);
         navigate(route.path);
         setActiveDrawer(null);
-        void window.electronAPI.invoke("activate-tab", { route });
+        void window.electronAPI.invoke('activate-tab', { route });
       },
     );
 
     const unsubscribeDeleted = window.electronAPI.onFromMain(
-      "drawer-route-deleted",
+      'drawer-route-deleted',
       ({
         routeId,
         fallbackRoute,
@@ -121,19 +126,19 @@ export function MainApp() {
         if (fallbackRoute) {
           setActiveTab(fallbackRoute.id);
           navigate(fallbackRoute.path);
-          void window.electronAPI.invoke("activate-tab", {
+          void window.electronAPI.invoke('activate-tab', {
             route: fallbackRoute,
           });
           return;
         }
 
         setActiveTab(null);
-        navigate("/");
+        navigate('/');
       },
     );
 
     const unsubscribeHibernation = window.electronAPI.onFromMain(
-      "drawer-route-hibernation-changed",
+      'drawer-route-hibernation-changed',
       ({
         routeId,
         isHibernated,
@@ -149,14 +154,14 @@ export function MainApp() {
           return;
         }
 
-        if (activeTab === routeId && windowLayout === "single") {
-          void window.electronAPI.invoke("activate-tab", { route });
+        if (activeTab === routeId && windowLayout === 'single') {
+          void window.electronAPI.invoke('activate-tab', { route });
         }
       },
     );
 
     const unsubscribeRouteLabel = window.electronAPI.onFromMain(
-      "drawer-route-label-changed",
+      'drawer-route-label-changed',
       ({ route }: { route: AppRoute }) => {
         if (!route?.id || !route.label) {
           return;
@@ -166,8 +171,15 @@ export function MainApp() {
       },
     );
 
+    const unsubscribeRouteZoom = window.electronAPI.onFromMain(
+      'route-zoom-changed',
+      ({ routeId, zoomLevel }: { routeId: string; zoomLevel: number }) => {
+        updateRouteZoomLevel(routeId, zoomLevel);
+      },
+    );
+
     const unsubscribeLayout = window.electronAPI.onFromMain(
-      "drawer-window-layout-changed",
+      'drawer-window-layout-changed',
       ({ windowLayout: nextWindowLayout }: { windowLayout: WindowLayout }) => {
         setWindowLayout(nextWindowLayout);
       },
@@ -180,6 +192,7 @@ export function MainApp() {
       unsubscribeHibernation?.();
       unsubscribeLayout?.();
       unsubscribeRouteLabel?.();
+      unsubscribeRouteZoom?.();
     };
   }, [
     activeTab,
@@ -191,12 +204,13 @@ export function MainApp() {
     setRouteHibernation,
     setWindowLayout,
     updateRouteLabel,
+    updateRouteZoomLevel,
     updateUnreadCount,
     windowLayout,
   ]);
 
   useEffect(() => {
-    if (windowLayout === "spread" || windowLayout === "matrix") {
+    if (windowLayout === 'spread' || windowLayout === 'matrix') {
       return;
     }
 
@@ -222,7 +236,7 @@ export function MainApp() {
     }
   }, [activeTab, location.pathname, navigate, routes, windowLayout]);
 
-  if (windowLayout === "spread" || windowLayout === "matrix") {
+  if (windowLayout === 'spread' || windowLayout === 'matrix') {
     return (
       <Layout>
         <SpreadWindows />
@@ -260,28 +274,25 @@ export function AuthGate() {
   const routes = useAppStore((state) => state.routes);
   const isOffline = useAppStore((state) => state.isOffline);
   const setOfflineMode = useAppStore((state) => state.setOfflineMode);
-  const {
-    hasCompletedInitialVerification,
-    isVerifying,
-    verifiedToken,
-  } = useSessionVerification({
-    hasHydrated,
-    token,
-    refreshToken,
-    isOffline,
-    clearSession,
-    setTokens,
-    setSession,
-    updateRoutesOrder,
-    getActiveTab,
-    setActiveTab,
-    setOfflineMode,
-    hasCachedWorkspace,
-    refreshSession,
-    getCurrentUser,
-    listRoutes,
-    createLocalRoute: createLocalRouteFromApiRoute,
-  });
+  const { hasCompletedInitialVerification, isVerifying, verifiedToken } =
+    useSessionVerification({
+      hasHydrated,
+      token,
+      refreshToken,
+      isOffline,
+      clearSession,
+      setTokens,
+      setSession,
+      updateRoutesOrder,
+      getActiveTab,
+      setActiveTab,
+      setOfflineMode,
+      hasCachedWorkspace,
+      refreshSession,
+      getCurrentUser,
+      listRoutes,
+      createLocalRoute: createLocalRouteFromApiRoute,
+    });
 
   if (
     shouldShowAuthenticationLoader({
@@ -322,7 +333,7 @@ export function AuthGate() {
 
 function AppRoot() {
   const drawer = useMemo(() => {
-    const value = new URLSearchParams(window.location.search).get("drawer");
+    const value = new URLSearchParams(window.location.search).get('drawer');
     return isDrawerKind(value) ? value : null;
   }, []);
 

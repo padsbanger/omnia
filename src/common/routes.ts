@@ -16,5 +16,6 @@ export type Route = {
   isHibernated?: boolean;
   internalHosts?: string[];
   openExternalLinksInBrowser?: boolean;
+  zoomLevel?: number;
   memoryUsage?: RouteMemoryUsage;
 };

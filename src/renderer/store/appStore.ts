@@ -1,6 +1,6 @@
-import { Route, RouteMemoryUsage } from "../../common/routes";
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { Route, RouteMemoryUsage } from '../../common/routes';
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 interface AppState {
   sidebarCollapsed: boolean;
@@ -8,19 +8,20 @@ interface AppState {
   unreadCounts: Record<string, number>;
   routes: Array<Route>;
   isOffline: boolean;
-  activeDrawer: "create" | "manage" | "settings" | null;
-  windowLayout: "single" | "spread" | "matrix";
+  activeDrawer: 'create' | 'manage' | 'settings' | null;
+  windowLayout: 'single' | 'spread' | 'matrix';
   toggleSidebar: () => void;
   setActiveTab: (tabId: string | null) => void;
   updateUnreadCount: (tabId: string, count: number) => void;
   replaceUnreadCounts: (counts: Record<string, number>) => void;
-  setActiveDrawer: (drawer: "create" | "manage" | "settings" | null) => void;
-  setWindowLayout: (layout: "single" | "spread" | "matrix") => void;
+  setActiveDrawer: (drawer: 'create' | 'manage' | 'settings' | null) => void;
+  setWindowLayout: (layout: 'single' | 'spread' | 'matrix') => void;
   addRoute: (route: Route) => void;
   removeRoute: (routeId: string) => void;
   clearRoutes: () => void;
   updateRoutesOrder: (routes: Array<Route>) => void;
   updateRouteLabel: (routeId: string, label: string) => void;
+  updateRouteZoomLevel: (routeId: string, zoomLevel: number) => void;
   setOfflineMode: (isOffline: boolean) => void;
   setRouteHibernation: (routeId: string, isHibernated: boolean) => void;
   updateRouteMemoryUsage: (
@@ -37,8 +38,8 @@ export const useAppStore = create<AppState>()(
       unreadCounts: {},
       routes: [] as Array<Route>,
       isOffline: false,
-      activeDrawer: null as "create" | "manage" | "settings" | null,
-      windowLayout: "single" as "single" | "spread" | "matrix",
+      activeDrawer: null as 'create' | 'manage' | 'settings' | null,
+      windowLayout: 'single' as 'single' | 'spread' | 'matrix',
 
       // Actions
       toggleSidebar: () =>
@@ -73,11 +74,29 @@ export const useAppStore = create<AppState>()(
           unreadCounts: {},
           activeDrawer: null,
         }),
-      updateRoutesOrder: (routes) => set({ routes }),
+      updateRoutesOrder: (routes) =>
+        set((state) => {
+          const zoomLevels = new Map(
+            state.routes.map((route) => [route.id, route.zoomLevel]),
+          );
+
+          return {
+            routes: routes.map((route) => ({
+              ...route,
+              zoomLevel: zoomLevels.get(route.id) ?? route.zoomLevel,
+            })),
+          };
+        }),
       updateRouteLabel: (routeId, label) =>
         set((state) => ({
           routes: state.routes.map((route) =>
             route.id === routeId ? { ...route, label } : route,
+          ),
+        })),
+      updateRouteZoomLevel: (routeId, zoomLevel) =>
+        set((state) => ({
+          routes: state.routes.map((route) =>
+            route.id === routeId ? { ...route, zoomLevel } : route,
           ),
         })),
       setOfflineMode: (isOffline) => set({ isOffline }),
@@ -101,7 +120,7 @@ export const useAppStore = create<AppState>()(
         })),
     }),
     {
-      name: "omnia-app-storage", // Key for localStorage
+      name: 'omnia-app-storage', // Key for localStorage
       merge: (persistedState, currentState) => {
         const nextState = (persistedState ?? {}) as Partial<AppState>;
 
@@ -117,8 +136,8 @@ export const useAppStore = create<AppState>()(
         unreadCounts: {},
         activeDrawer: null,
         isOffline: false,
-        routes: state.routes.map(({ memoryUsage: _memoryUsage, ...route }) =>
-          route,
+        routes: state.routes.map(
+          ({ memoryUsage: _memoryUsage, ...route }) => route,
         ),
       }),
     },

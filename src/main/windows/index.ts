@@ -40,10 +40,7 @@ const MEMORY_USAGE_POLL_INTERVAL_MS = 15000;
 const SIDEMENU_WIDTH = 100;
 const DRAWER_ANIMATION_DURATION_MS = 180;
 const WINDOWS_APP_USER_MODEL_ID = getWindowsAppUserModelId();
-const ROUTE_REQUEST_PERMISSIONS = new Set([
-  'media',
-  'notifications',
-]);
+const ROUTE_REQUEST_PERMISSIONS = new Set(['media', 'notifications']);
 const DRAWER_WIDTHS: Record<DrawerKind, number> = {
   create: 360,
   manage: 360,
@@ -206,15 +203,19 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
   };
 
   const getWebContentsProcessMemoryInfo = async (view: WebContentsView) => {
-    const webContentsWithOptionalMemoryApi = view.webContents as typeof view.webContents & {
-      getProcessMemoryInfo?: () => Promise<{
-        private: number;
-        shared: number;
-        residentSet?: number;
-      }>;
-    };
+    const webContentsWithOptionalMemoryApi =
+      view.webContents as typeof view.webContents & {
+        getProcessMemoryInfo?: () => Promise<{
+          private: number;
+          shared: number;
+          residentSet?: number;
+        }>;
+      };
 
-    if (typeof webContentsWithOptionalMemoryApi.getProcessMemoryInfo === 'function') {
+    if (
+      typeof webContentsWithOptionalMemoryApi.getProcessMemoryInfo ===
+      'function'
+    ) {
       return webContentsWithOptionalMemoryApi.getProcessMemoryInfo();
     }
 
@@ -252,13 +253,11 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
 
     const processInfo = (await getWebContentsProcessMemoryInfo(view).catch(
       () => null,
-    )) as
-      | {
-          private: number;
-          shared: number;
-          residentSet?: number;
-        }
-      | null;
+    )) as {
+      private: number;
+      shared: number;
+      residentSet?: number;
+    } | null;
 
     emitRouteMemoryUsage(routeId, {
       privateSize: processInfo?.private ?? 0,
@@ -280,7 +279,9 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
   };
 
   const clearRouteRuntimeState = (routeId: string) => {
-    const unreadIndex = unreadCounts.findIndex((item) => item.routeId === routeId);
+    const unreadIndex = unreadCounts.findIndex(
+      (item) => item.routeId === routeId,
+    );
     if (unreadIndex >= 0) {
       unreadCounts.splice(unreadIndex, 1);
       unreadRevision += 1;
@@ -438,8 +439,7 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
 
     const currentUrl = drawerWindow.webContents.getURL();
     const isAlreadyTargetingUrl =
-      drawerWindowTargetUrl === targetUrl ||
-      currentUrl === targetUrl;
+      drawerWindowTargetUrl === targetUrl || currentUrl === targetUrl;
 
     if (!isAlreadyTargetingUrl) {
       drawerWindowTargetUrl = targetUrl;
@@ -567,10 +567,10 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
     });
 
     const webContents = view.webContents;
+    webContents.setZoomLevel(route.zoomLevel ?? 0);
 
     // Media debugging
     webContents.on('media-started-playing', () => {
-
       const existing = audioStates.get(route.id);
       if (existing) existing.isPlaying = true;
       else audioStates.set(route.id, { isPlaying: true });
@@ -600,31 +600,29 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
       webContents
         .executeJavaScript(createUnreadTrackerScript(), false)
         .catch((error) => {
-          console.error(`Failed to inject unread tracker for ${route.id}`, error);
+          console.error(
+            `Failed to inject unread tracker for ${route.id}`,
+            error,
+          );
         });
     };
 
-    webContents.on(
-      'console-message',
-      (details, _level, legacyMessage) => {
-        const consoleMessage =
-          typeof details.message === 'string'
-            ? details.message
-            : legacyMessage;
+    webContents.on('console-message', (details, _level, legacyMessage) => {
+      const consoleMessage =
+        typeof details.message === 'string' ? details.message : legacyMessage;
 
-        if (typeof consoleMessage !== 'string') {
-          return;
-        }
+      if (typeof consoleMessage !== 'string') {
+        return;
+      }
 
-        const unreadUpdate = parseUnreadTrackerMessage(consoleMessage);
+      const unreadUpdate = parseUnreadTrackerMessage(consoleMessage);
 
-        if (!unreadUpdate) {
-          return;
-        }
+      if (!unreadUpdate) {
+        return;
+      }
 
-        setRouteUnreadCount(route.id, unreadUpdate.count, unreadUpdate.source);
-      },
-    );
+      setRouteUnreadCount(route.id, unreadUpdate.count, unreadUpdate.source);
+    });
 
     webContents.on('dom-ready', injectUnreadTracker);
     webContents.on('did-finish-load', injectUnreadTracker);
@@ -822,7 +820,10 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
 
     drawerState = {
       ...drawerState,
-      activeTab: drawerState.activeTab === routeId ? fallbackRoute?.id ?? null : drawerState.activeTab,
+      activeTab:
+        drawerState.activeTab === routeId
+          ? (fallbackRoute?.id ?? null)
+          : drawerState.activeTab,
       routes: drawerState.routes.filter((item) => item.id !== routeId),
     };
 
@@ -892,11 +893,11 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
     getUnreadState,
     syncDrawerState,
     closeDrawerWindow,
-  createRouteFromDrawer,
-  deleteRouteFromDrawer,
-  updateRouteFromDrawer,
-  setRouteHibernationFromDrawer,
-  setWindowLayoutFromDrawer,
+    createRouteFromDrawer,
+    deleteRouteFromDrawer,
+    updateRouteFromDrawer,
+    setRouteHibernationFromDrawer,
+    setWindowLayoutFromDrawer,
   });
 
   // Load main renderer (unchanged)
