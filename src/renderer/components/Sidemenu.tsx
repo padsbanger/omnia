@@ -201,14 +201,13 @@ const Sidemenu = () => {
         <Tooltip>
           <Button
             aria-label="Add route"
-            isIconOnly
-            className="h-9 min-h-9 w-9 min-w-9 rounded-xl bg-blue-500 text-white shadow-lg shadow-blue-950/30 hover:bg-blue-400"
+            className="h-11 min-h-11 w-11 min-w-11 rounded-xl bg-blue-500 px-0 text-white shadow-lg shadow-blue-950/30 hover:bg-blue-400 my-2 "
             isDisabled={isOffline}
             onClick={() => {
               setActiveDrawer('create');
             }}
           >
-            <MdAdd className="text-xl" />
+            <MdAdd className="text-[30px]" />
           </Button>
           <Tooltip.Content>
             <p>

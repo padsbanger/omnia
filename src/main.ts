@@ -1,6 +1,8 @@
 import "dotenv/config";
 import { app, BrowserWindow, components, ipcMain, Menu, shell } from 'electron';
 import started from "electron-squirrel-startup";
+import fs from 'node:fs';
+import path from 'node:path';
 import createWindow from "./main/windows";
 import {
   getAppSettings,
@@ -79,6 +81,16 @@ if (started) {
 
 if (process.platform === "win32") {
   app.setAppUserModelId(WINDOWS_APP_USER_MODEL_ID);
+}
+
+if (!app.isPackaged) {
+  const developmentSessionPath = path.join(
+    app.getPath('appData'),
+    'omnia-development',
+  );
+
+  fs.mkdirSync(developmentSessionPath, { recursive: true });
+  app.setPath('sessionData', developmentSessionPath);
 }
 
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
