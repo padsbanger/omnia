@@ -25,9 +25,20 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@heroui/react', () => {
   const Button = ({
     children,
+    isDisabled,
+    isIconOnly: _isIconOnly,
+    isPending: _isPending,
     ...props
-  }: React.PropsWithChildren<Record<string, unknown>>) => (
-    <button {...props}>{children}</button>
+  }: React.PropsWithChildren<
+    React.ButtonHTMLAttributes<HTMLButtonElement> & {
+      isDisabled?: boolean;
+      isIconOnly?: boolean;
+      isPending?: boolean;
+    }
+  >) => (
+    <button disabled={isDisabled} {...props}>
+      {children}
+    </button>
   );
   const Tooltip = Object.assign(
     ({ children }: React.PropsWithChildren) => <>{children}</>,
@@ -231,14 +242,18 @@ describe('ManageRoutesDrawer', () => {
     expect(mocks.navigate).not.toHaveBeenCalled();
   });
 
-  it('validates and saves edited route labels', async () => {
+  it('disables blank saves, validates keyboard commits, and saves labels', async () => {
     const onUpdateRouteLabel = vi.fn(async () => true);
     renderDrawer({ onUpdateRouteLabel });
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Rename' })[0]);
     const input = screen.getByDisplayValue('Route 1');
     fireEvent.change(input, { target: { value: '' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(
+      (screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+    fireEvent.keyDown(input, { key: 'Enter' });
     expect(screen.getByText('Route label cannot be empty.')).toBeTruthy();
 
     fireEvent.change(input, { target: { value: 'Renamed route' } });

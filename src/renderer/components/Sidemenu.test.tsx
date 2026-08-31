@@ -29,8 +29,14 @@ vi.mock('@heroui/react', () => {
   const Button = ({
     children,
     isDisabled,
+    isIconOnly: _isIconOnly,
     ...props
-  }: React.PropsWithChildren<{ isDisabled?: boolean }>) => (
+  }: React.PropsWithChildren<
+    React.ButtonHTMLAttributes<HTMLButtonElement> & {
+      isDisabled?: boolean;
+      isIconOnly?: boolean;
+    }
+  >) => (
     <button disabled={isDisabled} {...props}>
       {children}
     </button>
@@ -102,7 +108,10 @@ describe('Sidemenu', () => {
       token: 'token',
     };
     Object.assign(window, {
-      electronAPI: { invoke: mocks.invoke, onFromMain: mocks.onFromMain },
+      electronAPI: {
+        invoke: mocks.invoke,
+        onFromMain: mocks.onFromMain,
+      },
     });
   });
 

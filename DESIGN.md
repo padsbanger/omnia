@@ -10,11 +10,11 @@ is isolated from other routes.
 ## Architecture
 
 ```text
-React renderer ── typed application messages ──> preload bridge ──> Electron main
-     │                                                      │
-     │ Zustand + local storage                               ├─ BrowserWindow (shell)
-     │                                                       ├─ WebContentsView per route
-     └─ UI: sidebar, layouts, route and drawer controls      └─ Authentik + Omnia API
+React renderer -- allowlisted calls/events --> preload bridge -- IPC --> Electron main
+      |                                                                  |
+      |-- Zustand + local storage                                        |-- BrowserWindow shell
+      `-- sidebar, layouts, route controls                               |-- WebContentsView per route
+                                                                         `-- Authentik + Omnia API
 ```
 
 The processes have separate responsibilities:
@@ -97,8 +97,9 @@ local cached representation for offline use.
 - The preload bridge validates IPC channel names before forwarding calls.
 - Every route uses its configured session partition, preventing login cookies
   from leaking across integrations.
-- Route permission requests are limited to media and notifications and are
-  granted only to trusted HTTPS origins associated with the route.
+- Route permission requests are limited to media and notifications. They are
+  granted to trusted HTTPS origins associated with the route, plus HTTP when a
+  configured route itself uses a loopback host.
 - Navigation outside a route's allowed internal hosts is redirected to the
   system browser. OAuth popups are allowed only for specifically supported
   route types.

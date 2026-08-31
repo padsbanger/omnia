@@ -6,11 +6,43 @@ on:
       - '**'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
+  verify:
+    name: Verify release candidate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test with coverage
+        run: npm run test:coverage
+
+      - name: Run CRAP quality gate
+        run: npm run crap
+
   build:
     name: Build on ${{ matrix.os }}
+    needs: verify
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -23,7 +55,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 25
+          node-version: 24
           cache: 'npm'
 
       - name: Install dependencies
@@ -39,9 +71,7 @@ jobs:
         run: npx electron-forge make
         env:
           NODE_ENV: production
-          AUTHENTIK_CLIENT_ID: ${{ vars.AUTHENTIK_CLIENT_ID }}
-          AUTHENTIK_REDIRECT_URI: ${{vars.AUTHENTIK_REDIRECT_URI}}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OMNIA_BUILD_PACMAN: 'false'
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -56,6 +86,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/') && github.event_name == 'push'
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
@@ -77,4 +109,4 @@ jobs:
           generate_release_notes: true
           body: |
             Automated release from GitHub Actions.
-            Includes builds for Windows, macOS, Linux (.deb, .zip, etc.)
+            Includes a Windows Squirrel package and ZIP archives for macOS and Linux.

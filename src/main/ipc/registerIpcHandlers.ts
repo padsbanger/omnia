@@ -229,10 +229,7 @@ export default function registerIpcHandlers({
         routeId: string;
         route: { name?: string; order?: number };
       },
-    ) => {
-      await updateRoute(token, routeId, route);
-      return { success: true };
-    },
+    ) => updateRoute(token, routeId, route),
   );
 
   ipcMain.removeHandler('activate-tab');
