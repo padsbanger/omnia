@@ -81,8 +81,30 @@ const DIGIT_GLYPHS: Record<string, string[]> = {
   '+': ['010', '010', '111', '010', '010'],
 };
 
-const UNREAD_BADGE_COLOR: [number, number, number, number] = [239, 68, 68, 255];
-const UNREAD_BADGE_TEXT_COLOR: [number, number, number, number] = [255, 255, 255, 255];
+type RgbaColor = [number, number, number, number];
+
+// Keep the taskbar overlay aligned with the route badge in Sidemenu.tsx:
+// bg-rose-500 and text-white.
+const UNREAD_BADGE_COLOR: RgbaColor = [255, 32, 86, 255];
+const UNREAD_BADGE_TEXT_COLOR: RgbaColor = [255, 255, 255, 255];
+
+const drawCircle = (
+  pixels: Uint8Array,
+  size: number,
+  radius: number,
+  color: RgbaColor,
+) => {
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const dx = x + 0.5 - size / 2;
+      const dy = y + 0.5 - size / 2;
+      if (dx * dx + dy * dy > radius * radius) continue;
+
+      const index = (y * size + x) * 4;
+      pixels.set(color, index);
+    }
+  }
+};
 
 const createOverlayIcon = (count: number) => {
   const label = getUnreadOverlayText(count);
@@ -91,30 +113,15 @@ const createOverlayIcon = (count: number) => {
   }
 
   const size = 16;
+  const radius = size / 2;
   const pixels = new Uint8Array(size * size * 4);
 
-  const setPixel = (
-    x: number,
-    y: number,
-    color: [number, number, number, number],
-  ) => {
-    if (x < 0 || x >= size || y < 0 || y >= size) return;
+  const setPixel = (x: number, y: number, color: RgbaColor) => {
     const index = (y * size + x) * 4;
-    pixels[index] = color[0];
-    pixels[index + 1] = color[1];
-    pixels[index + 2] = color[2];
-    pixels[index + 3] = color[3];
+    pixels.set(color, index);
   };
 
-  for (let y = 0; y < size; y += 1) {
-    for (let x = 0; x < size; x += 1) {
-      const dx = x + 0.5 - size / 2;
-      const dy = y + 0.5 - size / 2;
-      if (Math.sqrt(dx * dx + dy * dy) <= size / 2) {
-        setPixel(x, y, UNREAD_BADGE_COLOR);
-      }
-    }
-  }
+  drawCircle(pixels, size, radius, UNREAD_BADGE_COLOR);
 
   const scale = label.length > 2 ? 1 : 2;
   const spacing = 1;
