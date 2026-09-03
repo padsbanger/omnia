@@ -5,6 +5,7 @@ import { Button, Tooltip } from '@heroui/react';
 import { MdAdd, MdLogout, MdOutlineBedtime, MdTune } from 'react-icons/md';
 import { useAppStore, useAuthStore } from '../store';
 import { updateRoute } from '../api/routes';
+import WorkspaceLayoutSwitcher from './WorkspaceLayoutSwitcher';
 
 type UnreadState = {
   total: number;
@@ -22,6 +23,7 @@ const Sidemenu = () => {
     updateRouteMemoryUsage,
     routes,
     windowLayout,
+    setWindowLayout,
     setActiveDrawer,
     clearRoutes,
     updateRoutesOrder,
@@ -287,6 +289,11 @@ const Sidemenu = () => {
           );
         })}
       </nav>
+      <WorkspaceLayoutSwitcher
+        onWindowLayoutChange={setWindowLayout}
+        routeCount={routes.length}
+        windowLayout={windowLayout}
+      />
       <div className="flex w-full shrink-0 items-center justify-between border-t border-white/[0.06] p-3">
         {routes.length > 0 ? (
           <Tooltip>

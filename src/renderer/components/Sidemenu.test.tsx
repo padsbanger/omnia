@@ -66,9 +66,12 @@ vi.mock('../api/routes', () => ({ updateRoute: vi.fn() }));
 vi.mock('./WindowIcon', () => ({ WindowIcon: () => <span>icon</span> }));
 vi.mock('react-icons/md', () => ({
   MdAdd: () => <span>add</span>,
+  MdCropSquare: () => <span>single</span>,
+  MdGridView: () => <span>matrix</span>,
   MdLogout: () => <span>logout</span>,
   MdOutlineBedtime: () => <span>sleep</span>,
   MdTune: () => <span>manage</span>,
+  MdViewColumn: () => <span>columns</span>,
 }));
 
 import Sidemenu from './Sidemenu';
@@ -97,6 +100,7 @@ describe('Sidemenu', () => {
       windowLayout: 'single',
       setActiveDrawer: action(),
       setActiveTab: action(),
+      setWindowLayout: action(),
       replaceUnreadCounts: action(),
       updateRouteMemoryUsage: action(),
       clearRoutes: action(),
@@ -120,6 +124,7 @@ describe('Sidemenu', () => {
 
     expect(screen.getByText('Route 1')).toBeTruthy();
     expect(screen.getByText('2')).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'Window layout' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Add route' }));
     fireEvent.click(screen.getByRole('button', { name: 'Manage routes' }));
 
@@ -180,5 +185,20 @@ describe('Sidemenu', () => {
         route,
       ]);
     });
+  });
+
+  it('changes the workspace layout directly from the sidebar', () => {
+    const secondRoute = {
+      ...route,
+      id: 'route-2',
+      path: '/route-2',
+      label: 'Route 2',
+    };
+    mocks.appState = { ...mocks.appState, routes: [route, secondRoute] };
+    render(<Sidemenu />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Columns layout' }));
+
+    expect(mocks.appState.setWindowLayout).toHaveBeenCalledWith('spread');
   });
 });
