@@ -31,6 +31,7 @@ import {
   createUnreadTrackerScript,
   parseUnreadTrackerMessage,
 } from './unreadTracker';
+import { createRouteFaviconDiscoveryHandler } from './routeFaviconDiscovery';
 
 const GOOGLE_OAUTH_POPUP_ICONS = new Set(['twitter', 'tradingview']);
 const WEBAUTHN_DISABLED_ICONS = new Set(['gmail', 'twitter']);
@@ -634,6 +635,21 @@ const createWindow = ({ startMinimized = false }: CreateWindowOptions = {}) => {
         unread,
         route.icon === 'gmail' ? 'gmail-title' : 'title',
       );
+    });
+
+    const handleFaviconUpdated = createRouteFaviconDiscoveryHandler(
+      route.icon,
+      (faviconUrl) => {
+        const faviconRoute = runtimeRoute ?? route;
+        faviconRoute.faviconUrl = faviconUrl;
+        mainWindow?.webContents.send('route-favicon-updated', {
+          routeId: route.id,
+          faviconUrl,
+        });
+      },
+    );
+    webContents.on('page-favicon-updated', (_event, favicons) => {
+      handleFaviconUpdated(favicons);
     });
 
     const openInExternalBrowser = (url: string) => {

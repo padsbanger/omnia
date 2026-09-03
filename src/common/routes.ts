@@ -10,6 +10,7 @@ export type Route = {
   path: string;
   id: string;
   icon: string;
+  faviconUrl?: string;
   label: string;
   loadURL: string;
   partition: string;

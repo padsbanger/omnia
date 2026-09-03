@@ -28,6 +28,7 @@ const validChannels = [
   'get-app-settings',
   'set-startup-open-mode',
   'route-memory-usage-updated',
+  'route-favicon-updated',
   'route-zoom-changed',
   'drawer-window-closed',
   'drawer-route-created',

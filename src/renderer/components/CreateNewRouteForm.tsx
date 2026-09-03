@@ -2,7 +2,10 @@ import { useMemo, useState, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@heroui/react";
 import { Route } from "../../common/routes";
-import { getRouteNavigationConfig } from "../../common/routeMapping";
+import {
+  getRouteNavigationConfig,
+  normalizeRouteUrl,
+} from "../../common/routeMapping";
 import { useAppStore } from "../store";
 
 type CreateNewRouteFormProps = {
@@ -22,7 +25,8 @@ type ApplicationKey =
   | 'slack'
   | 'telegram'
   | 'whatsapp'
-  | 'teams';
+  | 'teams'
+  | 'link';
 
 const APPLICATION_DEFAULTS: Record<
   ApplicationKey,
@@ -40,6 +44,7 @@ const APPLICATION_DEFAULTS: Record<
   telegram: { label: 'Telegram', url: 'https://web.telegram.org/a/' },
   whatsapp: { label: 'WhatsApp', url: 'https://web.whatsapp.com' },
   teams: { label: 'Microsoft Teams', url: 'https://teams.microsoft.com' },
+  link: { label: 'Custom Website', url: '' },
 };
 
 const buildRouteId = (label: string) =>
@@ -102,15 +107,6 @@ const CreateNewRouteForm = ({
     setUrl(APPLICATION_DEFAULTS[value].url);
   };
 
-  const normalizeUrl = (rawValue: string) => {
-    const trimmed = rawValue.trim();
-    if (!trimmed) return "";
-    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-      return trimmed;
-    }
-    return `https://${trimmed}`;
-  };
-
   const createLocalRoute = async (route: Route) => {
     const result = await window.electronAPI.invoke("create-route-view", {
       route,
@@ -130,7 +126,7 @@ const CreateNewRouteForm = ({
   const handleCreateRoute = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const normalizedUrl = normalizeUrl(url);
+    const normalizedUrl = normalizeRouteUrl(url);
     if (!normalizedUrl) return;
 
     const hostname = getHostname(normalizedUrl);
@@ -198,6 +194,7 @@ const CreateNewRouteForm = ({
             <option value="telegram">Telegram</option>
             <option value="whatsapp">WhatsApp</option>
             <option value="teams">Microsoft Teams</option>
+            <option value="link">Custom Website</option>
           </select>
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium text-slate-800">

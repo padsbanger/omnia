@@ -51,12 +51,24 @@ export function MainApp() {
     setActiveDrawer,
     setActiveTab,
     updateRouteLabel,
+    updateRouteFavicon,
     updateRouteZoomLevel,
     setRouteHibernation,
     setWindowLayout,
     updateUnreadCount,
     windowLayout,
   } = useAppStore();
+
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onFromMain(
+      'route-favicon-updated',
+      ({ routeId, faviconUrl }: { routeId: string; faviconUrl: string }) => {
+        updateRouteFavicon(routeId, faviconUrl);
+      },
+    );
+
+    return () => unsubscribe?.();
+  }, [updateRouteFavicon]);
 
   useEffect(() => {
     routes.forEach((route) => {

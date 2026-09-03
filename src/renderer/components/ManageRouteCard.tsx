@@ -261,7 +261,11 @@ const ManageRouteCard = (props: ManageRouteCardProps) => (
     ) : null}
     <div className="flex min-w-0 items-start gap-3">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 text-slate-900 ring-1 ring-slate-200/70">
-        <WindowIcon className="text-2xl" icon={props.route.icon} />
+        <WindowIcon
+          className="text-2xl"
+          faviconUrl={props.route.faviconUrl}
+          icon={props.route.icon}
+        />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         {props.isEditing ? (

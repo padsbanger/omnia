@@ -260,7 +260,11 @@ const Sidemenu = () => {
                   <span className="absolute -left-2 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-blue-400 shadow-[0_0_12px_rgba(96,165,250,0.65)]" />
                 )}
                 <div className="relative flex h-10 items-center justify-center">
-                  <WindowIcon className="text-[30px]" icon={route.icon} />
+                  <WindowIcon
+                    className="text-[30px]"
+                    faviconUrl={route.faviconUrl}
+                    icon={route.icon}
+                  />
                   {route.isHibernated ? (
                     <span className="absolute -bottom-1 -left-2 flex h-4 w-4 items-center justify-center rounded-full bg-amber-400 text-[10px] text-slate-950 ring-2 ring-[#080c17]">
                       <MdOutlineBedtime />

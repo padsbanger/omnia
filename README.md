@@ -31,8 +31,10 @@ Omnia explores a desktop-shell approach:
 
 The route picker currently provides presets for Gmail, Slack, Discord,
 Telegram, WhatsApp, Microsoft Teams, Messenger, Spotify, TradingView, X,
-ChatGPT, and Claude. These are URL and navigation-policy presets rather than
-guarantees of permanent third-party compatibility.
+ChatGPT, and Claude, plus a Custom Website option for arbitrary HTTP(S) apps.
+Custom websites use a page-reported favicon when it is safe to display and
+fall back to a generic link icon. Presets are URL and navigation-policy helpers
+rather than guarantees of permanent third-party compatibility.
 
 Product screenshots are intentionally omitted because this repository
 currently contains only branding icons, not suitable UI screenshots.

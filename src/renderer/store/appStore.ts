@@ -21,6 +21,7 @@ interface AppState {
   clearRoutes: () => void;
   updateRoutesOrder: (routes: Array<Route>) => void;
   updateRouteLabel: (routeId: string, label: string) => void;
+  updateRouteFavicon: (routeId: string, faviconUrl: string) => void;
   updateRouteZoomLevel: (routeId: string, zoomLevel: number) => void;
   setOfflineMode: (isOffline: boolean) => void;
   setRouteHibernation: (routeId: string, isHibernated: boolean) => void;
@@ -76,21 +77,38 @@ export const useAppStore = create<AppState>()(
         }),
       updateRoutesOrder: (routes) =>
         set((state) => {
-          const zoomLevels = new Map(
-            state.routes.map((route) => [route.id, route.zoomLevel]),
+          const localPreferences = new Map(
+            state.routes.map((route) => [
+              route.id,
+              {
+                faviconUrl: route.faviconUrl,
+                zoomLevel: route.zoomLevel,
+              },
+            ]),
           );
 
           return {
-            routes: routes.map((route) => ({
-              ...route,
-              zoomLevel: zoomLevels.get(route.id) ?? route.zoomLevel,
-            })),
+            routes: routes.map((route) => {
+              const preferences = localPreferences.get(route.id);
+
+              return {
+                ...route,
+                faviconUrl: route.faviconUrl ?? preferences?.faviconUrl,
+                zoomLevel: preferences?.zoomLevel ?? route.zoomLevel,
+              };
+            }),
           };
         }),
       updateRouteLabel: (routeId, label) =>
         set((state) => ({
           routes: state.routes.map((route) =>
             route.id === routeId ? { ...route, label } : route,
+          ),
+        })),
+      updateRouteFavicon: (routeId, faviconUrl) =>
+        set((state) => ({
+          routes: state.routes.map((route) =>
+            route.id === routeId ? { ...route, faviconUrl } : route,
           ),
         })),
       updateRouteZoomLevel: (routeId, zoomLevel) =>

@@ -99,6 +99,39 @@ describe('CreateNewRouteForm', () => {
     expect(screen.getByDisplayValue('https://claude.ai/')).toBeTruthy();
   });
 
+  it('creates a custom website route with a blank URL default', async () => {
+    const closeDrawer = vi.fn();
+    const onCreateRoute = vi.fn(async () => true);
+    renderForm({ closeDrawer, onCreateRoute });
+
+    fireEvent.change(screen.getByDisplayValue('Gmail'), {
+      target: { value: 'link' },
+    });
+
+    expect(screen.getByDisplayValue('Custom Website')).toBeTruthy();
+    expect(screen.getByPlaceholderText('mail.google.com')).toHaveProperty(
+      'value',
+      '',
+    );
+
+    fillRoute(' Project dashboard ', 'dashboard.example.com/work');
+    fireEvent.submit(
+      screen.getByRole('button', { name: 'Save route' }).closest('form')!,
+    );
+
+    await waitFor(() => {
+      expect(onCreateRoute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          label: 'Project dashboard',
+          loadURL: 'https://dashboard.example.com/work',
+          icon: 'link',
+          internalHosts: ['dashboard.example.com'],
+        }),
+      );
+      expect(closeDrawer).toHaveBeenCalledOnce();
+    });
+  });
+
   it('updates local route state after Electron creates the route', async () => {
     const closeDrawer = vi.fn();
     renderForm({ closeDrawer });
