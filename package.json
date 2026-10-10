@@ -24,6 +24,11 @@
     "productName": "Omnia",
     "icon": "src/assets/icon.png"
   },
+  "overrides": {
+    "extract-zip": {
+      "yauzl": "3.4.0"
+    }
+  },
   "keywords": [
     "electron",
     "react",

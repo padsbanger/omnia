@@ -239,6 +239,16 @@ Electron Forge builds only for the current host. Configured makers are:
 | Linux                     | ZIP archive                |
 | Arch Linux with `makepkg` | Optional Pacman package    |
 
+`npm run make` includes the packaging step; there is no need to run
+`npm run package` first. Build outputs are written to `out/`.
+
+The `extract-zip` dependency is overridden to use `yauzl` 3.4.0 because older
+versions can stall while extracting Electron on Node 26
+([upstream issue](https://github.com/thejoshwolfe/yauzl/issues/176)). Keep this
+override until `extract-zip` uses a fixed version itself. If an existing checkout
+stops at packaging without producing output, run `npm ci` to install the locked
+dependency versions before retrying.
+
 A pushed Git tag triggers `.github/workflows/build-and-release.yml`. It first
 runs lint, typecheck, coverage, and the CRAP gate, then builds on Windows,
 macOS, and Ubuntu and attaches the generated files to a GitHub Release. The
